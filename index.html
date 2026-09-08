@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Becencio Senoto-Duldulao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+/* =========================================================
+   GLOBAL / BASE
+   ========================================================= */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  color: #1F2A24;
+  background-color: #F1EEE6;
+  line-height: 1.6;
+}
+
+section {
+  width: 100%;
+  padding: 100px 8vw;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* =========================================================
+   HOME SECTION
+   ========================================================= */
+
+.home {
+  min-height: 100vh;
+  background-color: #1F2A24;
+  color: #F1EEE6;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+  align-items: center;
+  justify-content: center;
+  gap: 5vw;
+  padding: 0 8vw;
+}
+
+.home-content {
+  min-width: 0;
+}
+
+.home-visual {
+  width: min(350px, 100%);
+  justify-self: center;
+}
+
+.home-image-frame {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.home-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  transform: scale(1.18);
+}
+
+.home-image-caption {
+  margin: 0;
+  font-family: 'Fraunces', serif;
+  font-size: 14px;
+  font-style: italic;
+  text-align: center;
+  color: #C7CDC5;
+}
+
+.home-kicker {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: #C9A24B;
+}
+
+.home-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(38px, 6vw, 76px);
+  line-height: 1.1;
+  max-width: 850px;
+  color: #F1EEE6;
+}
+
+.home-subtitle {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 400;
+  font-size: 18px;
+  max-width: 520px;
+  margin-top: 28px;
+  color: #C7CDC5;
+}
+
+.home-scroll {
+  position: relative;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #FFFFFF;
+  transition: color 0.25s ease;
+}
+
+.home-scroll::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background-color: #C9A24B;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.home-scroll:hover {
+  color: #C9A24B;
+}
+
+.home-scroll:hover::after {
+  transform: scaleX(1);
+}
+
+@media (max-width: 640px) {
+  .home {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    gap: 32px;
+    padding: 0 6vw;
+  }
+  .home-image-frame {
+    max-height: 320px;
+    align-self: center;
+  }
+  .home-visual {
+    align-self: center;
+  }
+  .home-title {
+    font-size: 34px;
+  }
+  .home-subtitle {
+    font-size: 16px;
+  }
+}
+
+/* =========================================================
+   ABOUT SECTION
+   ========================================================= */
+
+.about {
+  background-color: #F1EEE6;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 80px;
+  height: 514px;
+  align-items: center;
+  align-content: center;
+}
+
+.about-heading {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 34px;
+  color: #1F2A24;
+  margin-bottom: 28px;
+}
+
+.about-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  color: #3A443D;
+  max-width: 560px;
+}
+
+.about-facts {
+  border-left: 1px solid #D8D2C4;
+  padding-left: 40px;
+}
+
+.about-fact {
+  padding: 12px 0;
+  border-bottom: 1px solid #D8D2C4;
+}
+
+.about-fact:first-child {
+  padding-top: 0;
+}
+
+.about-fact-label {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #A9752F;
+  margin-bottom: 6px;
+}
+
+.about-fact-value {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: #1F2A24;
+}
+
+@media (max-width: 800px) {
+  .about,
+  .expertise,
+  .performance,
+  .contact {
+    height: auto;
+    min-height: 514px;
+  }
+  .about {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .about-facts {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid #D8D2C4;
+    padding-top: 32px;
+  }
+}
+
+/* =========================================================
+   EXPERTISE SECTION
+   ========================================================= */
+
+.expertise {
+  background-color: #EAE4D6;
+  height: 514px;
+}
+
+.expertise-heading {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 34px;
+  color: #1F2A24;
+  margin-bottom: 56px;
+}
+
+.expertise-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+}
+
+.expertise-item {
+  padding: 0 36px;
+  border-left: 1px solid #C7BFA9;
+}
+
+.expertise-item:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.expertise-item-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  font-size: 22px;
+  color: #1F2A24;
+  margin-bottom: 16px;
+}
+
+.expertise-item-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  color: #4A5148;
+}
+
+@media (max-width: 800px) {
+  .expertise-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .expertise-item {
+    padding-left: 0;
+    border-left: none;
+    border-top: 1px solid #C7BFA9;
+    padding-top: 32px;
+  }
+  .expertise-item:first-child {
+    border-top: none;
+    padding-top: 0;
+  }
+}
+
+/* =========================================================
+   PERFORMANCE SECTION
+   ========================================================= */
+
+.performance {
+  background-color: #1F2A24;
+  color: #F1EEE6;
+    height: 514px;
+}
+
+.performance-heading {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 34px;
+  color: #F1EEE6;
+  margin-bottom: 15px;
+}
+
+.performance-intro {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: #C7CDC5;
+  max-width: 480px;
+  margin-bottom: 40px;
+}
+
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+}
+
+.performance-item {
+  border-top: 1px solid #45524A;
+  padding-top: 24px;
+}
+
+.performance-item-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  color: #C9A24B;
+  margin-bottom: 12px;
+}
+
+.performance-item-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  color: #C7CDC5;
+}
+
+@media (max-width: 800px) {
+  .performance-grid {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+}
+
+/* =========================================================
+   CONTACT SECTION
+   ========================================================= */
+
+.contact {
+  background-color: #F1EEE6;
+  text-align: center;
+  padding: 100px 8vw;
+  height: 514px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.contact-heading {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-style: italic;
+  font-size: clamp(30px, 5vw, 48px);
+  color: #1F2A24;
+  margin-bottom: 20px;
+}
+
+.contact-text {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  color: #4A5148;
+  max-width: 460px;
+  margin: 0 auto 32px auto;
+}
+
+.contact-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.contact-link {
+  position: relative;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #1F2A24;
+  padding-bottom: 2px;
+  transition: color 0.25s ease;
+}
+
+.contact-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background-color: #A9752F;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.3s ease;
+}
+
+.contact-link:hover {
+  color: #A9752F;
+}
+
+.contact-link:hover::after {
+  transform: scaleX(1);
+}
+
+@media (max-width: 640px) {
+  .contact {
+    padding-top: 80px;
+    padding-bottom: 80px;
+  }
+  .contact-link {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 800px) {
+  .about,
+  .expertise,
+  .performance,
+  .contact {
+    height: auto;
+    min-height: 514px;
+  }
+}
+
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<section id="home" class="home">
+  <div class="home-content">
+    <div class="home-kicker">Hello, I'm Bic Senoto</div>
+    <h1 class="home-title">I read markets for a living.</h1>
+    <p class="home-subtitle">Private Investor based in the Philippines. Three years of studying markets, cycles, and company fundamentals—building a disciplined framework for long-term investing.
+    </p>
+    <a href="#about" class="home-scroll">See more</a>
+  </div>
+  <div class="home-visual">
+    <div class="home-image-frame">
+      <img class="home-image" src="IMG_6117.JPG" alt="Bic Senoto">
+    </div>
+    <div class="home-image-caption">" love means nothing, when money is involved "  <br> -Bic Senoto</div>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="about">
+  <div class="about-body">
+    <h2 class="about-heading">About</h2>
+    <p class="about-text">I started investing three years ago and built a habit of testing every idea before trusting it with real capital
+        My work spans technical analysis, macroeconomics, and fundamental analysis.
+        I study price charts, interest rate cycles, and company financials side by side, because markets rarely move for one reason alone.
+        Outside of investing, I create content on financial literacy and market news, helping other people build the same habits I rely on.</p>
+  </div>
+  <div class="about-facts">
+    <div class="about-fact">
+      <div class="about-fact-label">Location</div>
+      <div class="about-fact-value">Cainta, Rizal, Philippines</div>
+    </div>
+    <div class="about-fact">
+      <div class="about-fact-label">Experience</div>
+      <div class="about-fact-value">3+ years as a Private Investor</div>
+    </div>
+    <div class="about-fact">
+      <div class="about-fact-label">Core skills</div>
+      <div class="about-fact-value">Technical, Macro, and Fundamental Analysis</div>
+    </div>
+    <div class="about-fact">
+      <div class="about-fact-label">Current focus</div>
+      <div class="about-fact-value">Building a formal investment framework</div>
+    </div>
+  </div>
+</section>
+
+<!-- EXPERTISE -->
+<section id="expertise" class="expertise">
+  <h2 class="expertise-heading">Expertise</h2>
+  <div class="expertise-grid">
+    <div class="expertise-item">
+      <div class="expertise-item-title">Technical Analysis</div>
+      <p class="expertise-item-text">I read price action and chart structure across multiple timeframes, using trend, support and resistance, and pattern recognition to time entries and exits.</p>
+    </div>
+    <div class="expertise-item">
+      <div class="expertise-item-title">Macroeconomics</div>
+      <p class="expertise-item-text">I track interest rates, inflation, and currency trends to understand the forces that move markets before the charts show it.</p>
+    </div>
+    <div class="expertise-item">
+      <div class="expertise-item-title">Fundamental Analysis</div>
+      <p class="expertise-item-text">I study financial statements, valuation, and business quality to separate strong companies from strong stories.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PERFORMANCE -->
+<section id="performance" class="performance">
+  <h2 class="performance-heading">Approach to Performance</h2>
+  <p class="performance-intro">Performance starts with process. Here is what mine is built on.</p>
+  <div class="performance-grid">
+    <div class="performance-item">
+      <div class="performance-item-title">Risk First</div>
+      <p class="performance-item-text">Every position is sized around a stop loss before it is sized around a target. Capital preservation comes before capital growth.</p>
+    </div>
+    <div class="performance-item">
+      <div class="performance-item-title">Process Over Prediction</div>
+      <p class="performance-item-text">I invest by rules, not guesses. Every decision follows a tested plan, repeated the same way every time.</p>
+    </div>
+    <div class="performance-item">
+      <div class="performance-item-title">Built for Decades</div>
+      <p class="performance-item-text">My long-term positions are chosen to compound over years, not days. Patience is part of the strategy.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="contact">
+  <h2 class="contact-heading">Let's talk</h2>
+  <p class="contact-text">Exploring ideas, opportunities, and partnerships across markets and long-term investing.</p>
+  <div class="contact-links">
+    <a href="mailto:bicsenoto@gmail.com" class="contact-link">bicsenoto@gmail.com</a>
+    <a href="tel:+639692525424" class="contact-link">+63 969 252 5424</a>
+    <a href="#" class="contact-link">Cainta, Rizal 1900, Philippines</a>
+  </div>
+</section>
+
+<script>
+  document.querySelector('.home-scroll').addEventListener('click', (event) => {
+    event.preventDefault();
+    document.querySelector('#about').scrollIntoView({
+      behavior: 'smooth',
+      block: 'center'
+    });
+    history.pushState(null, '', '#about');
+  });
+</script>
+
+</body>
+</html>
