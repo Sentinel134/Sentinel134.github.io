@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F1EEE6;
+  --panel: #FFFFFF;
+  --ink: #1F2A24;
+  --muted: #5C6A61;
+  --line: #D9D4C7;
+  --accent: #2F6B4F;
+  --accent-ink: #FFFFFF;
+  --soft: #E6EFE9;
+  --warn: #9A3B2E;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141B17;
+    --panel: #1F2A24;
+    --ink: #F1EEE6;
+    --muted: #A9B5AD;
+    --line: #33423A;
+    --accent: #7FC4A0;
+    --accent-ink: #10231A;
+    --soft: #26362D;
+    --warn: #F0A090;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.55;
+}
+header {
+  padding: 28px 16px 18px;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+h1 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 2rem; letter-spacing: .02em; }
+h1 span { color: var(--accent); }
+h2 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 1.3rem; margin-bottom: 10px; }
+h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+main { max-width: 1100px; margin: 0 auto; padding: 0 16px 60px; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+label { display: block; font-size: .85rem; color: var(--muted); margin: 10px 0 4px; }
+input, textarea, select {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+}
+textarea { resize: vertical; min-height: 70px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0 14px; }
+button {
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  padding: 9px 16px;
+}
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: .5; cursor: wait; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.tab.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.status { font-size: .9rem; color: var(--muted); }
+.status.err { color: var(--warn); }
+.section { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+.section:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
+.pill {
+  display: inline-block;
+  font-size: .75rem;
+  background: var(--soft);
+  color: var(--ink);
+  border-radius: 99px;
+  padding: 2px 10px;
+  margin-right: 6px;
+}
+.muted { color: var(--muted); font-size: .9rem; }
+.variant {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.variant .tag { font-weight: 600; color: var(--accent); margin-right: 6px; }
+pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: .85rem;
+  margin-top: 6px;
+}
+.copy { font-size: .8rem; padding: 3px 10px; margin-top: 6px; }
+.empty { color: var(--muted); padding: 20px 0; }
+details summary { cursor: pointer; color: var(--muted); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+@media (max-width: 600px) { h1 { font-size: 1.6rem; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>J<span>A</span>RVIS <span style="font-size:1rem;color:var(--muted);font-family:'Space Grotesk'">YouTube studio agent</span></h1>
+  <a class="muted" href="../">Back to site</a>
+</header>
+
+<main>
+  <div class="card">
+    <h2>1. Settings</h2>
+    <div class="grid">
+      <div>
+        <label for="apiKey">Anthropic API key (stays in this browser)</label>
+        <input id="apiKey" type="password" placeholder="sk-ant-..." autocomplete="off">
+      </div>
+      <div>
+        <label for="model">Model</label>
+        <select id="model">
+          <option value="claude-opus-5-5">Claude Opus 5.5 (best quality)</option>
+          <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (cheaper)</option>
+        </select>
+      </div>
+      <div>
+        <label for="channel">Channel name and niche</label>
+        <input id="channel" placeholder="e.g. MindLoop: everyday psychology explained">
+      </div>
+      <div>
+        <label for="voice">Narration voice</label>
+        <input id="voice" placeholder="e.g. calm, curious, second person, light humor">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. Video idea</h2>
+    <label for="topic">Topic or behavior</label>
+    <textarea id="topic" placeholder="e.g. Why we check our phone 96 times a day even when nothing is new"></textarea>
+    <div class="grid">
+      <div>
+        <label for="minutes">Target length (minutes)</label>
+        <input id="minutes" type="number" min="1" max="60" value="10">
+      </div>
+      <div>
+        <label for="audience">Audience</label>
+        <input id="audience" placeholder="e.g. 18 to 34, curious, self improvement">
+      </div>
+      <div>
+        <label for="style">Visual style</label>
+        <input id="style" placeholder="e.g. 2D flat animation, warm muted palette">
+      </div>
+    </div>
+    <div class="row">
+      <button id="runAll">Run full pipeline</button>
+      <button class="ghost" id="runScript">Script only</button>
+      <button class="ghost" id="runSeo">SEO from script</button>
+      <button class="ghost" id="runOutput">Output from script</button>
+      <button class="ghost" id="exportMd">Download Markdown</button>
+      <span id="status" class="status"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" data-tab="script">Script</button>
+      <button class="tab" data-tab="seo">SEO</button>
+      <button class="tab" data-tab="output">Output</button>
+    </div>
+    <div id="pane-script"><p class="empty">Run the pipeline to write your script. You can edit every section before you run SEO or Output.</p></div>
+    <div id="pane-seo" hidden><p class="empty">SEO appears here: titles, thumbnails, A/B plan, description, chapters, hashtags.</p></div>
+    <div id="pane-output" hidden><p class="empty">Output appears here: characters, consistency prompts, chapters with titles, 21:9 scene prompts.</p></div>
+  </div>
+</main>
+
+<script type="module">
+import Anthropic from "https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@1.3.0/+esm";
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+const FIELDS = ["apiKey", "model", "channel", "voice", "topic", "minutes", "audience", "style"];
+FIELDS.forEach((f) => {
+  const saved = store.get("jarvis." + f);
+  if (saved !== null) $(f).value = saved;
+  $(f).addEventListener("input", () => store.set("jarvis." + f, $(f).value));
+});
+
+let state = { script: null, seo: null, output: null };
+try { state = JSON.parse(store.get("jarvis.state")) || state; } catch {}
+const save = () => store.set("jarvis.state", JSON.stringify(state));
+
+/* ---------- Script structure from the mind map ---------- */
+const SECTIONS = [
+  ["hook", "Hook", "First 15 to 30 seconds. A surprising claim, question or scene that makes leaving feel like a loss."],
+  ["familiar_behavior", "Familiar behavior", "Describe the everyday behavior so the viewer thinks: that is me."],
+  ["psychology", "Psychology behind it", "Name the concept, study or mechanism. Cite real research with year and researcher where known."],
+  ["why_brains", "Why our brains do this", "Evolutionary or neurological reason. Explain it in plain words."],
+  ["real_cost", "The real cost", "What this behavior costs in time, money, health or relationships. Use numbers."],
+  ["bigger_picture", "Bigger picture", "Zoom out to society, technology or culture."],
+  ["closing", "Closing insight + final engagement hook", "One clear takeaway, a practical action, then a comment prompt and a tease for the next video."],
+];
+
+/* ---------- JSON schemas for structured outputs ---------- */
+const str = { type: "string" };
+const int = { type: "integer" };
+const obj = (props) => ({ type: "object", properties: props, required: Object.keys(props), additionalProperties: false });
+const arr = (items) => ({ type: "array", items });
+
+const SCRIPT_SCHEMA = obj({
+  working_title: str,
+  premise: str,
+  sections: arr(obj({
+    key: { type: "string", enum: SECTIONS.map((s) => s[0]) },
+    start_seconds: int,
+    narration: str,
+    visual_notes: str,
+  })),
+});
+
+const SEO_SCHEMA = obj({
+  titles: arr(obj({ text: str, angle: str, why_it_gets_clicks: str })),
+  thumbnails: arr(obj({ concept: str, text_overlay: str, emotion: str, composition: str, image_prompt: str })),
+  ab_test_plan: str,
+  description: str,
+  chapters: arr(obj({ timestamp: str, title: str })),
+  hashtags: arr(str),
+  tags: arr(str),
+});
+
+const OUTPUT_SCHEMA = obj({
+  style_guide: str,
+  characters: arr(obj({
+    name: str, role: str, appearance: str, wardrobe: str, personality: str, consistency_prompt: str,
+  })),
+  chapters: arr(obj({
+    number: int,
+    title: str,
+    timestamp: str,
+    scenes: arr(obj({ shot: str, image_prompt: str, motion_prompt: str, narration_excerpt: str })),
+  })),
+});
+
+/* ---------- Claude call ---------- */
+function client() {
+  const apiKey = $("apiKey").value.trim();
+  if (!apiKey) throw new Error("Add your Anthropic API key in Settings.");
+  return new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
+}
+
+function brief() {
+  return [
+    `Channel: ${$("channel").value || "a growing faceless YouTube channel about everyday psychology"}`,
+    `Narration voice: ${$("voice").value || "clear, warm, curious, second person"}`,
+    `Topic: ${$("topic").value}`,
+    `Target length: ${$("minutes").value || 10} minutes (about 150 spoken words per minute)`,
+    `Audience: ${$("audience").value || "general YouTube viewers, 18 to 40"}`,
+    `Visual style: ${$("style").value || "clean 2D animation"}`,
+  ].join("\n");
+}
+
+const SYSTEM = `You are Jarvis, a production agent for a YouTube channel. You write retention-focused scripts, SEO packages and visual production plans. Ground psychological claims in real, named research. If a fact is uncertain, phrase it with care instead of inventing a statistic. Write for the ear: short spoken sentences, no stage directions inside narration.`;
+
+async function ask(prompt, schema, label) {
+  const anthropic = client();
+  const model = $("model").value;
+  let chars = 0;
+  setStatus(`${label}: thinking...`);
+  const params = {
+    model,
+    max_tokens: 64000,
+    thinking: { type: "adaptive" },
+    output_config: { effort: "high", format: { type: "json_schema", schema } },
+    system: SYSTEM,
+    messages: [{ role: "user", content: prompt }],
+  };
+  // Server-side fallback reroutes a refused request to another model.
+  if (model === "claude-opus-5-5" || model === "claude-sonnet-5-5") {
+    params.betas = ["server-side-fallback-2026-07-01"];
+    params.fallbacks = "default";
+  }
+  const stream = anthropic.beta.messages.stream(params);
+  stream.on("text", (t) => {
+    chars += t.length;
+    setStatus(`${label}: writing (${chars.toLocaleString()} characters)`);
+  });
+  const msg = await stream.finalMessage();
+  if (msg.stop_reason === "refusal") {
+    throw new Error(`${label}: the model declined this request. Rephrase the topic and try again.`);
+  }
+  if (msg.stop_reason === "max_tokens") {
+    throw new Error(`${label}: the response hit the length limit. Lower the target minutes and try again.`);
+  }
+  const text = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
+  return JSON.parse(text);
+}
+
+function scriptText() {
+  if (!state.script) throw new Error("Write the script first.");
+  return state.script.sections.map((s) => {
+    const meta = SECTIONS.find((x) => x[0] === s.key);
+    return `[${fmtTime(s.start_seconds)}] ${meta ? meta[1] : s.key}\n${s.narration}\nVisuals: ${s.visual_notes}`;
+  }).join("\n\n");
+}
+
+/* ---------- Stages ---------- */
+async function runScript() {
+  const guide = SECTIONS.map(([k, l, d], i) => `${i + 1}. ${k} (${l}): ${d}`).join("\n");
+  state.script = await ask(
+    `${brief()}\n\nWrite the full narration script. Return exactly 7 sections, in this order, with these keys:\n${guide}\n\nSet start_seconds for each section so the total matches the target length. The narration word count must fit the target length. visual_notes describes what appears on screen.`,
+    SCRIPT_SCHEMA, "Script");
+  state.seo = null; state.output = null;
+  save(); renderAll(); showTab("script");
+}
+
+async function runSeo() {
+  state.seo = await ask(
+    `${brief()}\n\nFinal script:\n${scriptText()}\n\nBuild the SEO package:\n- titles: exactly 3 A/B title variants under 60 characters, each with a different angle (curiosity gap, benefit, contrarian).\n- thumbnails: exactly 3 A/B thumbnail concepts. text_overlay has 4 words or fewer. image_prompt is a ready prompt for an image model at 16:9.\n- ab_test_plan: which title and thumbnail pairs to test with YouTube Test and Compare, what metric to watch (CTR and watch time share), and when to decide.\n- description: first 2 lines carry the main keyword and a hook, then a summary, then chapters, then a subscribe call.\n- chapters: timestamps from the script start_seconds, first one 0:00, at least 3 chapters, short titles.\n- hashtags: 3 to 5, each starting with #.\n- tags: 10 to 15 search tags.`,
+    SEO_SCHEMA, "SEO");
+  save(); renderSeo(); showTab("seo");
+}
+
+async function runOutput() {
+  state.output = await ask(
+    `${brief()}\n\nFinal script:\n${scriptText()}\n\nBuild the visual production plan for AI image and video tools.\n- Aspect ratio is 21:9 cinematic widescreen. End every image_prompt with "--ar 21:9" and frame shots for 21:9.\n- style_guide: palette, line style, lighting, camera language. Reuse it in every prompt.\n- characters: every recurring character. consistency_prompt is one fixed block of text (face, age, hair, body, outfit, colors) that gets pasted into every scene prompt so the character looks identical in every shot.\n- chapters: one per script section, with a short chapter title and the timestamp. Give each chapter 3 to 5 scenes.\n- In each scene image_prompt, include the full consistency_prompt of any character present, then the style guide, then the shot.\n- motion_prompt describes camera and character motion for an image to video model, 3 to 6 seconds.`,
+    OUTPUT_SCHEMA, "Output");
+  save(); renderOutput(); showTab("output");
+}
+
+/* ---------- Rendering ---------- */
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const fmtTime = (sec) => { sec = Math.max(0, sec | 0); return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, "0")}`; };
+const copyBtn = (text) => `<button class="ghost copy" data-copy="${esc(text)}">Copy</button>`;
+
+function renderScript() {
+  const p = $("pane-script");
+  const s = state.script;
+  if (!s) return;
+  const words = s.sections.reduce((n, x) => n + x.narration.split(/\s+/).filter(Boolean).length, 0);
+  p.innerHTML = `
+    <h2>${esc(s.working_title)}</h2>
+    <p class="muted">${esc(s.premise)}</p>
+    <p class="muted" style="margin-top:6px">${words.toLocaleString()} words, about ${(words / 150).toFixed(1)} minutes spoken. Edits save automatically.</p>
+    <div style="margin-top:14px">
+    ${s.sections.map((x, i) => {
+      const meta = SECTIONS.find((m) => m[0] === x.key) || [x.key, x.key];
+      return `<div class="section">
+        <h3><span class="pill">${fmtTime(x.start_seconds)}</span>${esc(meta[1])}</h3>
+        <textarea data-i="${i}" data-f="narration" rows="6">${esc(x.narration)}</textarea>
+        <label>Visual notes</label>
+        <textarea data-i="${i}" data-f="visual_notes" rows="2">${esc(x.visual_notes)}</textarea>
+      </div>`;
+    }).join("")}
+    </div>`;
+  p.querySelectorAll("textarea").forEach((t) => t.addEventListener("input", () => {
+    state.script.sections[+t.dataset.i][t.dataset.f] = t.value;
+    save();
+  }));
+}
+
+function renderSeo() {
+  const p = $("pane-seo");
+  const s = state.seo;
+  if (!s) { p.innerHTML = `<p class="empty">Run SEO to build titles, thumbnails, A/B plan, description, chapters and hashtags.</p>`; return; }
+  const chaptersTxt = s.chapters.map((c) => `${c.timestamp} ${c.title}`).join("\n");
+  p.innerHTML = `
+    <div class="section"><h2>Titles (A/B)</h2>
+      ${s.titles.map((t, i) => `<div class="variant"><span class="tag">${"ABC"[i] || i + 1}</span><strong>${esc(t.text)}</strong> <span class="muted">(${t.text.length} chars)</span>
+        <p class="muted">${esc(t.angle)}. ${esc(t.why_it_gets_clicks)}</p>${copyBtn(t.text)}</div>`).join("")}
+    </div>
+    <div class="section"><h2>Thumbnails (A/B)</h2>
+      ${s.thumbnails.map((t, i) => `<div class="variant"><span class="tag">${"ABC"[i] || i + 1}</span><strong>${esc(t.text_overlay)}</strong>
+        <p>${esc(t.concept)}</p>
+        <p class="muted">Emotion: ${esc(t.emotion)}. Composition: ${esc(t.composition)}</p>
+        <pre>${esc(t.image_prompt)}</pre>${copyBtn(t.image_prompt)}</div>`).join("")}
+    </div>
+    <div class="section"><h2>A/B testing plan</h2><p style="white-space:pre-wrap">${esc(s.ab_test_plan)}</p></div>
+    <div class="section"><h2>Description</h2><pre>${esc(s.description)}</pre>${copyBtn(s.description)}</div>
+    <div class="section"><h2>Chapters</h2><pre>${esc(chaptersTxt)}</pre>${copyBtn(chaptersTxt)}</div>
+    <div class="section"><h2>Hashtags and tags</h2>
+      <div class="chips">${s.hashtags.map((h) => `<span class="pill">${esc(h)}</span>`).join("")}</div>${copyBtn(s.hashtags.join(" "))}
+      <div class="chips" style="margin-top:10px">${s.tags.map((h) => `<span class="pill">${esc(h)}</span>`).join("")}</div>${copyBtn(s.tags.join(", "))}
+    </div>`;
+}
+
+function renderOutput() {
+  const p = $("pane-output");
+  const o = state.output;
+  if (!o) { p.innerHTML = `<p class="empty">Run Output to build characters, consistency prompts and 21:9 scene prompts.</p>`; return; }
+  p.innerHTML = `
+    <p><span class="pill">Aspect ratio 21:9</span><span class="pill">${o.characters.length} characters</span><span class="pill">${o.chapters.length} chapters</span></p>
+    <div class="section"><h2>Style guide</h2><pre>${esc(o.style_guide)}</pre>${copyBtn(o.style_guide)}</div>
+    <div class="section"><h2>Characters</h2>
+      ${o.characters.map((c) => `<div class="variant"><h3>${esc(c.name)} <span class="muted">${esc(c.role)}</span></h3>
+        <p class="muted">${esc(c.appearance)}. Wardrobe: ${esc(c.wardrobe)}. Personality: ${esc(c.personality)}</p>
+        <label>Character consistency block (paste into every prompt)</label>
+        <pre>${esc(c.consistency_prompt)}</pre>${copyBtn(c.consistency_prompt)}</div>`).join("")}
+    </div>
+    <div class="section"><h2>Chapters and scenes</h2>
+      ${o.chapters.map((ch) => `<details class="variant" open><summary><strong>${ch.number}. ${esc(ch.title)}</strong> <span class="pill">${esc(ch.timestamp)}</span></summary>
+        ${ch.scenes.map((sc, i) => `<div class="section"><h3>Scene ${i + 1}: ${esc(sc.shot)}</h3>
+          <p class="muted">"${esc(sc.narration_excerpt)}"</p>
+          <label>Image prompt</label><pre>${esc(sc.image_prompt)}</pre>${copyBtn(sc.image_prompt)}
+          <label>Motion prompt</label><pre>${esc(sc.motion_prompt)}</pre>${copyBtn(sc.motion_prompt)}</div>`).join("")}
+      </details>`).join("")}
+    </div>`;
+}
+
+function renderAll() { renderScript(); renderSeo(); renderOutput(); }
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-copy]");
+  if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = "Copied"; setTimeout(() => (b.textContent = "Copy"), 1200); } catch {}
+});
+
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  ["script", "seo", "output"].forEach((n) => ($("pane-" + n).hidden = n !== name));
+}
+document.querySelectorAll(".tab").forEach((t) => t.addEventListener("click", () => showTab(t.dataset.tab)));
+
+function setStatus(msg, err = false) { const s = $("status"); s.textContent = msg; s.classList.toggle("err", err); }
+
+/* ---------- Markdown export ---------- */
+function toMarkdown() {
+  const out = [];
+  if (state.script) {
+    out.push(`# ${state.script.working_title}\n\n${state.script.premise}\n\n## Script`);
+    state.script.sections.forEach((s) => {
+      const meta = SECTIONS.find((m) => m[0] === s.key);
+      out.push(`### [${fmtTime(s.start_seconds)}] ${meta ? meta[1] : s.key}\n\n${s.narration}\n\nVisuals: ${s.visual_notes}`);
+    });
+  }
+  if (state.seo) {
+    const s = state.seo;
+    out.push(`## SEO\n\n### Titles\n${s.titles.map((t, i) => `${"ABC"[i]}. ${t.text} (${t.angle})`).join("\n")}`);
+    out.push(`### Thumbnails\n${s.thumbnails.map((t, i) => `${"ABC"[i]}. ${t.text_overlay}: ${t.concept}\n   Prompt: ${t.image_prompt}`).join("\n")}`);
+    out.push(`### A/B plan\n${s.ab_test_plan}\n\n### Description\n${s.description}\n\n### Chapters\n${s.chapters.map((c) => `${c.timestamp} ${c.title}`).join("\n")}\n\n### Hashtags\n${s.hashtags.join(" ")}\n\n### Tags\n${s.tags.join(", ")}`);
+  }
+  if (state.output) {
+    const o = state.output;
+    out.push(`## Output (21:9)\n\n### Style guide\n${o.style_guide}\n\n### Characters\n${o.characters.map((c) => `#### ${c.name} (${c.role})\n${c.consistency_prompt}`).join("\n\n")}`);
+    o.chapters.forEach((ch) => out.push(`### ${ch.number}. ${ch.title} [${ch.timestamp}]\n${ch.scenes.map((sc, i) => `Scene ${i + 1}: ${sc.shot}\nImage: ${sc.image_prompt}\nMotion: ${sc.motion_prompt}`).join("\n\n")}`));
+  }
+  return out.join("\n\n");
+}
+
+$("exportMd").addEventListener("click", () => {
+  if (!state.script) return setStatus("Nothing to export yet.", true);
+  const blob = new Blob([toMarkdown()], { type: "text/markdown" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = (state.script.working_title || "jarvis").replace(/[^\w]+/g, "-").toLowerCase() + ".md";
+  a.click();
+});
+
+/* ---------- Buttons ---------- */
+const buttons = ["runAll", "runScript", "runSeo", "runOutput"].map($);
+async function guard(fn) {
+  buttons.forEach((b) => (b.disabled = true));
+  try { await fn(); setStatus("Done."); }
+  catch (err) {
+    let msg = err.message;
+    if (err instanceof Anthropic.AuthenticationError) msg = "The API key was rejected. Check it in Settings.";
+    else if (err instanceof Anthropic.RateLimitError) msg = "Rate limit reached. Wait a minute and try again.";
+    else if (err instanceof Anthropic.APIConnectionError) msg = "Network error. Check your connection.";
+    else if (err instanceof SyntaxError) msg = "The response was not valid JSON. Try again.";
+    setStatus(msg, true);
+  } finally { buttons.forEach((b) => (b.disabled = false)); }
+}
+$("runScript").addEventListener("click", () => guard(() => {
+  if (!$("topic").value.trim()) throw new Error("Add a topic first.");
+  return runScript();
+}));
+$("runSeo").addEventListener("click", () => guard(runSeo));
+$("runOutput").addEventListener("click", () => guard(runOutput));
+$("runAll").addEventListener("click", () => guard(async () => {
+  if (!$("topic").value.trim()) throw new Error("Add a topic first.");
+  await runScript();
+  setStatus("SEO and Output: running in parallel...");
+  await Promise.all([runSeo(), runOutput()]);
+  showTab("script");
+}));
+
+renderAll();
+</script>
+</body>
+</html>
