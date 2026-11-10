@@ -200,6 +200,9 @@ const AGENTS = [
   { id: "retention", skill: "yt-retention", name: "Retention", sub: "where viewers leave", color: "#a98bff" },
   { id: "comment", skill: "yt-comment", name: "Comments", sub: "triage · replies", color: "#e6e1ff" },
 ];
+// The name each agent goes by on the Map, in the same order as above.
+["Ethan", "Damien", "Adrian", "Nathaniel", "Vincent", "Sebastian", "Drake"].forEach((n, i) => (AGENTS[i].person = n));
+const fullName = (a) => `${a.person} - ${a.name}`;
 const STATUS_COLOR = { ok: "var(--ok)", warn: "var(--warn)", alert: "var(--alert)", skipped: "var(--skip)" };
 const PRIO_COLOR = { high: "#ff8f8f", medium: "#ffd479", low: "#8ff0c0" };
 
@@ -573,7 +576,7 @@ function drawBackground(g) {
 
 /* ---------- drawing: the constellations, through any transform ---------- */
 // tf(k) gives the transform for agent k, or null to skip it. fromCore: signals start at the core.
-function drawGraph(g, tf, fromCore) {
+function drawGraph(g, tf, fromCore, byPerson) {
   const TF = AGENTS.map((_, k) => tf(k));
   const hiK = grab && grab.node ? grab.node.k : hover && hover.n ? hover.n.k : -1;
   for (const l of LINKS) {
@@ -640,7 +643,7 @@ function drawGraph(g, tf, fromCore) {
       g.beginPath(); g.arc(x, y, rr + wave * 22 * Math.max(0.8, t.s * 1.5), 0, 6.283); g.stroke();
     }
     g.fillStyle = h.agent.color; g.font = `600 ${Math.round(Math.max(11, 15 * t.s * 1.1))}px Cinzel, serif`;
-    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(h.agent.name[0], x, y + 1);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText((byPerson ? h.agent.person : h.agent.name)[0], x, y + 1);
     g.globalAlpha = 1;
   }
 }
@@ -674,10 +677,10 @@ function drawMap() {
   g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
   for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.55, h.y * 0.55), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
   g.setLineDash([]);
-  drawGraph(g, () => t, true);
+  drawGraph(g, () => t, true, true);
   HUBS.forEach((h, k) => {
     const [lx, ly] = toS(t, h.label[0], h.label[1]);
-    h.lx = label(g, h.agent.name.toUpperCase(), subOf(k), lx, ly, Math.max(12, 25 * SCALE), isSkipped(k) ? 0.5 : k === focus ? 1 : 0.85, W);
+    h.lx = label(g, h.agent.person.toUpperCase(), null, lx, ly, Math.max(12, 25 * SCALE), isSkipped(k) ? 0.5 : k === focus ? 1 : 0.85, W);
     h.ly = ly;
   });
   drawCore(g);
@@ -777,7 +780,7 @@ function updateFocus() {
   const f = focusIndex();
   if (f !== lastFocus) {
     lastFocus = f;
-    $("focusName").textContent = AGENTS[f].name.toUpperCase();
+    $("focusName").textContent = AGENTS[f].person.toUpperCase();
     if (view === "agents") renderAgents();
   }
 }
@@ -884,7 +887,7 @@ function showTip(e, n) {
   const tip = $("tip");
   if (!n || n.kind === "star" || n.kind === "empty") { tip.style.display = "none"; return; }
   if (n.kind === "item") tip.innerHTML = `<b>${esc(n.item.label)}</b><br><span class="muted">${esc(n.item.sub)}</span>`;
-  else { const d = agentData(n.agent.id); tip.innerHTML = `<b>${esc(n.agent.name)}</b><br><span class="muted">${d ? esc(d.summary) : esc(n.agent.sub)}</span>`; }
+  else { const d = agentData(n.agent.id); tip.innerHTML = `<b>${esc(view === "map" ? fullName(n.agent) : n.agent.name)}</b><br><span class="muted">${d ? esc(d.summary) : esc(n.agent.sub)}</span>`; }
   tip.style.display = "block";
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px";
   tip.style.top = e.clientY + 14 + "px";
@@ -916,7 +919,7 @@ function agentDetail(id) {
 function openAgent(id, anchor) {
   const ag = AGENTS.find((a) => a.id === id);
   panel.innerHTML = `<div class="p-top"><span class="pill" style="--c:${ag.color}">Agent</span><button class="x" id="px" aria-label="Close">×</button></div>
-    <h2>${esc(ag.name)}</h2>${R ? agentDetail(id) : `<p class="muted">Load a report to see what this agent found.</p>`}`;
+    <h2>${esc(fullName(ag))}</h2>${R ? agentDetail(id) : `<p class="muted">Load a report to see what this agent found.</p>`}`;
   $("px").onclick = closePanel;
   openPanel(false);
   if (anchor) { const el = document.getElementById(anchor); if (el) { el.scrollIntoView({ block: "center" }); el.style.background = "rgba(255,255,255,.06)"; } }
@@ -931,7 +934,7 @@ function openCore() {
     <h3>Why</h3><p>${esc(h.why)}</p>
     <h3>This week</h3><p>${esc(h.this_week)}</p>
     ${R.latest_upload ? `<h3>Newest upload</h3><p><b>${esc(R.latest_upload.title)}</b></p><p class="muted">${esc(R.latest_upload.summary)}</p>` : ""}
-    <h3>Agents</h3>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(a.name)}</b><div class="d">${esc(d ? d.summary : "not in this report")}</div></div></div>`; }).join("")}`;
+    <h3>Agents</h3>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(fullName(a))}</b><div class="d">${esc(d ? d.summary : "not in this report")}</div></div></div>`; }).join("")}`;
   $("px").onclick = closePanel;
   openPanel(false);
 }
@@ -977,7 +980,7 @@ document.addEventListener("click", async (e) => {
 function renderAgents() {
   const ag = AGENTS[focusIndex()];
   $("carName").textContent = ag.name.toUpperCase();
-  $("agentCard").innerHTML = `<h2 class="sec">${esc(ag.name.toUpperCase())}</h2>${R ? agentDetail(ag.id) : `<p class="muted">Load a report to see what /${ag.skill} found.</p>`}`;
+  $("agentCard").innerHTML = `<h2 class="sec">${esc(fullName(ag))}</h2>${R ? agentDetail(ag.id) : `<p class="muted">Load a report to see what /${ag.skill} found.</p>`}`;
 }
 
 /* =========================================================
@@ -1009,7 +1012,7 @@ function renderDash() {
       <div class="kpi"><b>${new Date(R.generated_at).toLocaleDateString()}</b><span>Report date</span></div>
     </div>
     <div class="grid2">
-      <div class="card"><h2 class="sec">Agents</h2>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row" style="cursor:pointer" data-open="${a.id}"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(a.name)}</b> <span class="muted">${d ? esc(d.status) + (d.score != null ? " · " + d.score : "") : "missing"}</span><div class="d">${esc(d ? d.summary : "")}</div></div></div>`; }).join("")}</div>
+      <div class="card"><h2 class="sec">Agents</h2>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row" style="cursor:pointer" data-open="${a.id}"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(fullName(a))}</b> <span class="muted">${d ? esc(d.status) + (d.score != null ? " · " + d.score : "") : "missing"}</span><div class="d">${esc(d ? d.summary : "")}</div></div></div>`; }).join("")}</div>
       <div class="card"><h2 class="sec">Do these, easiest first</h2>${recs.length ? recs.map((r) => `<div class="item-row"><i class="dot" style="--c:#e9e3ff"></i><div><b>${esc(r.action)}</b><div class="d">${esc(r.agent)} · ${esc(r.effort)} effort · ${esc(r.why)}</div></div></div>`).join("") : `<p class="muted">No recommendations.</p>`}</div>
     </div>
     ${R.videos.length ? `<div class="card"><h2 class="sec">Videos</h2><div class="tbl"><table>
@@ -1113,7 +1116,7 @@ function renderHist() {
       ${HIST.map((h) => { const r = h.report; const t = avgOf(r, "title_score"), k = avgOf(r, "hook_score");
         return `<tr data-date="${h.date}" style="cursor:pointer${h === cur ? ";background:rgba(255,255,255,.06)" : ""}"><td style="white-space:nowrap"><b>${h.date}</b></td><td>${esc(r.headline.one_fix)}${r.latest_upload ? `<div class="muted">Newest: ${esc(r.latest_upload.title)}</div>` : ""}</td>
         <td>${num(r.channel.subscribers)}</td><td><span class="score" style="background:${scoreColor(t)}">${t ?? "–"}</span></td><td><span class="score" style="background:${scoreColor(k)}">${k ?? "–"}</span></td>
-        <td style="white-space:nowrap">${AGENTS.map((a) => { const d = r.agents.find((x) => x.id === a.id); return `<i class="dot" title="${esc(a.name)}: ${d ? d.status : "missing"}" style="display:inline-block;margin:0 2px;--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i>`; }).join("")}</td></tr>`; }).join("")}
+        <td style="white-space:nowrap">${AGENTS.map((a) => { const d = r.agents.find((x) => x.id === a.id); return `<i class="dot" title="${esc(fullName(a))}: ${d ? d.status : "missing"}" style="display:inline-block;margin:0 2px;--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i>`; }).join("")}</td></tr>`; }).join("")}
     </table></div></div>`;
   el.querySelectorAll("tr[data-date]").forEach((tr) => (tr.onclick = () => { showReport(tr.dataset.date); renderHist(); }));
   el.querySelectorAll(".hchart").forEach((svgEl) => {
