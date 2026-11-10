@@ -203,9 +203,11 @@ const AGENTS = [
   { id: "plan", skill: "yt-plan", name: "Weekly Plan", sub: "anchor · shorts", color: "#7ff0c8" },
   { id: "retention", skill: "yt-retention", name: "Retention", sub: "where viewers leave", color: "#a98bff" },
   { id: "comment", skill: "yt-comment", name: "Comments", sub: "triage · replies", color: "#e6e1ff" },
+  { id: "shorts", skill: "yt-shorts", name: "Shorts", sub: "clips from the newest video", color: "#ff9d7a" },
+  { id: "chapters", skill: "yt-chapters", name: "Chapters", sub: "paste-ready timestamps", color: "#9fe870" },
 ];
 // The name each agent goes by on the Map, in the same order as above.
-["Ethan", "Damien", "Adrian", "Nathaniel", "Vincent", "Sebastian", "Drake"].forEach((n, i) => (AGENTS[i].person = n));
+["Ethan", "Damien", "Adrian", "Nathaniel", "Vincent", "Sebastian", "Drake", "Marcus", "Julian"].forEach((n, i) => (AGENTS[i].person = n));
 const fullName = (a) => `${a.person} - ${a.name}`;
 const STATUS_COLOR = { ok: "var(--ok)", warn: "var(--warn)", alert: "var(--alert)", skipped: "var(--skip)" };
 const PRIO_COLOR = { high: "#ff8f8f", medium: "#ffd479", low: "#8ff0c0" };
