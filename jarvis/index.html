@@ -27,7 +27,27 @@ header { display: flex; align-items: center; justify-content: space-between; fle
 .hbtn { background: rgba(255,255,255,.08); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: .85rem; }
 .hbtn.main { background: #e9e3ff; color: #23264a; font-weight: 600; border-color: #e9e3ff; }
 .view { display: none; } .view.on { display: block; }
-#map-wrap { position: relative; height: calc(100vh - 64px); min-height: 520px; }
+#map-wrap { position: relative; height: 100vh; height: 100dvh; min-height: 480px; }
+.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; pointer-events: none; }
+.topbar > * { pointer-events: auto; }
+.topbar .seg { background: rgba(10,10,32,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); }
+.date { font-family: 'Cinzel', serif; font-size: .95rem; letter-spacing: .12em; color: var(--ink); text-shadow: 0 1px 8px rgba(0,0,0,.6); min-width: 0; }
+.icons { display: flex; gap: 8px; }
+.ibtn { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(10,10,32,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); color: var(--ink); padding: 0; transition: background .2s, transform .2s; }
+.ibtn:hover { background: rgba(201,184,255,.18); transform: translateY(-1px); }
+.ibtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ibtn[hidden] { display: none; }
+.fab { position: fixed; bottom: 16px; z-index: 15; width: 46px; height: 46px; }
+#dashBtn { left: 16px; }
+.legend-wrap { position: fixed; right: 16px; bottom: 16px; z-index: 15; }
+.legend-wrap .fab { position: static; }
+.legend-pop { position: absolute; right: 0; bottom: 56px; width: 220px; background: rgba(16,17,44,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .8rem; color: var(--muted); line-height: 2; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.legend-pop i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+#v-agents .wrap, #v-hist .wrap { padding-top: 78px; padding-bottom: 80px; }
+#acv { width: 100%; height: clamp(300px, 56vh, 620px); display: block; touch-action: pan-y; user-select: none; cursor: grab; }
+#acv.grabbing { cursor: grabbing; }
+.car-ctrl span, .map-ctrl span { display: inline-block; width: 200px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.car-ctrl { align-items: center; font-size: .75rem; letter-spacing: .14em; color: var(--muted); }
 #map { width: 100%; height: 100%; touch-action: none; user-select: none; display: block; cursor: grab; }
 #map.grabbing { cursor: grabbing; }
 .ring, .upright { transition: transform .9s cubic-bezier(.3,.7,.2,1); }
@@ -49,10 +69,8 @@ header { display: flex; align-items: center; justify-content: space-between; fle
 @keyframes pulse { 50% { stroke-opacity: .25; } }
 @keyframes twinkle { 50% { opacity: .15; } }
 @keyframes spin { to { transform: rotate(360deg); } }
-.map-ctrl { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; font-size: .75rem; letter-spacing: .14em; color: var(--muted); }
+.map-ctrl { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; font-size: .75rem; letter-spacing: .14em; color: var(--muted); }
 .map-ctrl button { background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1rem; }
-.legend { position: absolute; left: 16px; top: 12px; font-size: .76rem; color: var(--muted); line-height: 1.8; }
-.legend i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
 #empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 120px); text-align: center; width: min(420px, 92vw); background: rgba(27,29,59,.88); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 #empty p { color: var(--muted); font-size: .9rem; margin: 8px 0 14px; }
 #tip { position: fixed; pointer-events: none; background: rgba(15,16,40,.94); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: .8rem; display: none; z-index: 30; max-width: 260px; }
@@ -91,50 +109,61 @@ td { padding: 8px; border-top: 1px solid var(--line); vertical-align: top; }
 td a { color: var(--ink); }
 .score { display: inline-block; min-width: 34px; text-align: center; border-radius: 6px; padding: 1px 6px; font-weight: 600; font-size: .8rem; color: #1b1d3b; }
 .tbl { overflow-x: auto; }
-#panel { position: fixed; top: 0; right: 0; height: 100%; width: min(480px, 100%); background: var(--panel); border-left: 1px solid var(--line); z-index: 20; transform: translateX(105%); transition: transform .35s; overflow-y: auto; padding: 18px 18px 40px; box-shadow: -10px 0 40px rgba(0,0,0,.35); }
-#panel.open { transform: none; }
+#panel { position: fixed; left: 50%; top: 50%; z-index: 20; width: min(580px, calc(100vw - 32px)); max-height: min(78vh, 760px); overflow-y: auto; padding: 0 20px 24px;
+  background: rgba(18,19,48,.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(201,184,255,.22); border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset;
+  opacity: 0; pointer-events: none; transform: translate(-50%, -46%) scale(.94); transition: opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.2); }
+#panel.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+#panel.wide { width: min(1120px, calc(100vw - 32px)); max-height: 86vh; }
+#panel .p-top { position: sticky; top: 0; z-index: 2; margin: 0 -20px; padding: 14px 20px 10px; background: linear-gradient(rgba(18,19,48,.98) 70%, rgba(18,19,48,0)); }
 #panel h2 { font-family: 'Cinzel', serif; letter-spacing: .08em; font-size: 1.3rem; margin: 8px 0 4px; }
-#panel h3 { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; font-weight: 500; }
+#panel h3, #agentCard h3 { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; font-weight: 500; }
 .p-top { display: flex; justify-content: space-between; align-items: center; }
-.x { background: none; border: 0; font-size: 1.5rem; color: var(--muted); }
+.x { background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1.2rem; line-height: 1; color: var(--ink); }
+.x:hover { background: rgba(255,143,143,.18); }
 .banner { background: rgba(255,212,121,.14); border: 1px solid rgba(255,212,121,.4); color: var(--warn); border-radius: 8px; padding: 6px 12px; font-size: .8rem; }
-#toast { position: fixed; left: 50%; bottom: 70px; transform: translateX(-50%); background: rgba(15,16,40,.95); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; font-size: .85rem; z-index: 40; display: none; max-width: 90vw; }
+#toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(15,16,40,.95); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; font-size: .85rem; z-index: 40; display: none; max-width: 90vw; }
 #drop { position: fixed; inset: 0; background: rgba(20,20,50,.85); border: 3px dashed var(--accent); z-index: 50; display: none; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 1.4rem; letter-spacing: .14em; }
 @media (max-width: 640px) {
-  .brand small { display: none; }
-  #map-wrap { height: calc(100vh - 150px); min-height: 440px; }
-  .legend { display: none; }
+  .topbar { flex-wrap: wrap; padding: 10px 12px; }
+  .topbar .seg { order: 3; margin: 0 auto; }
+  .date { font-size: .8rem; }
+  .ibtn { width: 36px; height: 36px; }
+  #v-agents .wrap, #v-hist .wrap { padding-top: 118px; }
+  .map-ctrl span { width: 150px; }
   #empty { transform: translate(-50%, 90px); }
 }
 </style>
 </head>
 <body>
-<header>
-  <div class="brand">JARVIS<small id="tagline">No report loaded</small></div>
+<div class="topbar">
+  <div class="date" id="tagline">No report loaded</div>
   <div class="seg" id="tabs">
     <button data-v="map" class="on">Map</button>
     <button data-v="agents">Agents</button>
-    <button data-v="dash">Dashboard</button>
     <button data-v="hist">History</button>
   </div>
-  <div class="hright">
-    <button class="hbtn main" id="folderBtn" hidden>Connect folder</button>
-    <button class="hbtn" id="loadBtn">Load report</button>
-    <button class="hbtn" id="moreBtn">Help</button>
+  <div class="icons">
+    <button class="ibtn" id="folderBtn" hidden title="Connect reports folder" aria-label="Connect reports folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg></button>
+    <button class="ibtn" id="loadBtn" title="Load report" aria-label="Load report"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></button>
+    <button class="ibtn" id="moreBtn" title="Help" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
   </div>
   <input type="file" id="file" accept=".json,application/json" hidden>
-</header>
+</div>
+<button class="ibtn fab" id="dashBtn" title="Dashboard" aria-label="Dashboard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6M9 9h2"/></svg></button>
+<div class="legend-wrap" id="legendWrap">
+  <div class="legend-pop" id="legendPop" hidden>
+    <div><i style="background:var(--alert)"></i>High priority finding</div>
+    <div><i style="background:var(--warn)"></i>Medium priority finding</div>
+    <div><i style="background:var(--ok)"></i>Low priority or working</div>
+    <div><i style="background:#e9e3ff"></i>Recommendation</div>
+  </div>
+  <button class="ibtn fab" id="infoBtn" title="Legend" aria-label="Legend" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".7" fill="currentColor"/></svg></button>
+</div>
 
 <section class="view on" id="v-map">
   <div id="map-wrap">
-    <div class="legend">
-      <div><i style="background:var(--alert)"></i>High priority finding</div>
-      <div><i style="background:var(--warn)"></i>Medium priority finding</div>
-      <div><i style="background:var(--ok)"></i>Low priority or working</div>
-      <div><i style="background:#e9e3ff"></i>Recommendation</div>
-    </div>
     <canvas id="map" aria-label="Live map of the Jarvis agents. Drag a node to pull it, drag empty space to spin."></canvas>
-    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs></svg>
     <div id="empty">
       <p>Run <b>/jarvis-report</b> in Claude Code on your laptop, then load <b>reports/latest.json</b>. The file stays in your browser.</p>
       <div class="row" style="justify-content:center"><button class="btn" id="emptyLoad">Load report</button><button class="btn ghost" id="emptySample">View sample</button></div>
@@ -142,8 +171,11 @@ td a { color: var(--ink); }
     <div class="map-ctrl"><button id="rotL" aria-label="Rotate left">‹</button><span id="focusName"></span><button id="rotR" aria-label="Rotate right">›</button></div>
   </div>
 </section>
-<section class="view" id="v-agents"><div class="wrap" id="agents"></div></section>
-<section class="view" id="v-dash"><div class="wrap" id="dash"></div></section>
+<section class="view" id="v-agents"><div class="wrap" id="agents">
+  <canvas id="acv" aria-label="Live view of one agent. Drag a node to pull it, swipe to change agent."></canvas>
+  <div class="car-ctrl"><button id="cL" aria-label="Previous agent">‹</button><span id="carName"></span><button id="cR" aria-label="Next agent">›</button></div>
+  <div class="card" id="agentCard"></div>
+</div></section>
 <section class="view" id="v-hist"><div class="wrap" id="hist"></div></section>
 
 <aside id="panel"></aside>
@@ -168,6 +200,9 @@ const AGENTS = [
   { id: "retention", skill: "yt-retention", name: "Retention", sub: "where viewers leave", color: "#a98bff" },
   { id: "comment", skill: "yt-comment", name: "Comments", sub: "triage · replies", color: "#e6e1ff" },
 ];
+// The name each agent goes by on the Map, in the same order as above.
+["Ethan", "Damien", "Adrian", "Nathaniel", "Vincent", "Sebastian", "Drake"].forEach((n, i) => (AGENTS[i].person = n));
+const fullName = (a) => `${a.person} - ${a.name}`;
 const STATUS_COLOR = { ok: "var(--ok)", warn: "var(--warn)", alert: "var(--alert)", skipped: "var(--skip)" };
 const PRIO_COLOR = { high: "#ff8f8f", medium: "#ffd479", low: "#8ff0c0" };
 
@@ -243,7 +278,7 @@ async function loadFolder(dir, quiet) {
   if (!quiet) toast(`Loaded ${found.length} report${found.length > 1 ? "s" : ""}. Newest: ${found[0].date}.`);
   return dir;
 }
-function setFolderBtn(label) { const b = $("folderBtn"); b.hidden = !canFolder; b.textContent = label; }
+function setFolderBtn(label) { const b = $("folderBtn"); b.hidden = !canFolder; const t = label === "Refresh" ? "Refresh reports" : label === "Open folder" ? "Open reports folder" : "Connect reports folder"; b.title = t; b.setAttribute("aria-label", t); }
 async function folderClick() {
   try {
     if (DIR) { await loadFolder(DIR); return; }
@@ -321,58 +356,61 @@ function geometry(k) {
   }
   return { a, hub, label: [Math.cos(a) * LABEL_R, Math.sin(a) * LABEL_R], branches };
 }
-const poly = (pts) => pts.map((p) => p.map((v) => v.toFixed(1)).join(",")).join(" ");
-
-function agentSvg(k, g, withLabels) {
-  const ag = AGENTS[k], d = agentData(ag.id);
-  const st = d ? d.status : null;
-  let s = `<g class="agent-g" data-agent="${ag.id}" style="opacity:${st === "skipped" ? 0.5 : 1}">`;
-  s += `<line x1="${(g.hub[0] * 0.55).toFixed(1)}" y1="${(g.hub[1] * 0.55).toFixed(1)}" x2="${g.hub[0].toFixed(1)}" y2="${g.hub[1].toFixed(1)}" stroke="rgba(255,255,255,.18)" stroke-dasharray="2 6"/>`;
-  g.branches.forEach((b, j) => {
-    s += `<polyline class="branch" points="${poly(b.pts)}"${b.item ? "" : ' style="opacity:.45"'}/>`;
-    b.twigs.forEach((t) => (s += `<polyline class="branch" style="opacity:.5" points="${poly(t)}"/>`));
-    b.pts.slice(1, -1).forEach((p) => (s += `<circle class="star" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5"/>`));
-    b.twigs.forEach((t) => (s += `<circle class="star" cx="${t[1][0].toFixed(1)}" cy="${t[1][1].toFixed(1)}" r="2"/>`));
-    const tip = b.pts[b.pts.length - 1];
-    if (b.item) {
-      s += `<g data-item="${ag.id}:${b.item.kind}:${b.item.i}"><circle class="item" cx="${tip[0].toFixed(1)}" cy="${tip[1].toFixed(1)}" r="${b.item.kind === "rec" ? 8 : 7}" fill="${b.item.color}" stroke="${ag.color}" filter="url(#glow)"/>`;
-      s += `<circle class="item-hit" cx="${tip[0].toFixed(1)}" cy="${tip[1].toFixed(1)}" r="15"/></g>`;
-    } else {
-      s += `<circle class="item empty" cx="${tip[0].toFixed(1)}" cy="${tip[1].toFixed(1)}" r="6"/>`;
-    }
-  });
-  const ring = st ? STATUS_COLOR[st] : ag.color;
-  s += `<circle class="hub${st === "alert" ? " alertpulse" : ""}" data-hub="${ag.id}" cx="${g.hub[0].toFixed(1)}" cy="${g.hub[1].toFixed(1)}" r="18" stroke="${ring}"/>`;
-  s += `<g transform="translate(${g.hub[0].toFixed(1)},${g.hub[1].toFixed(1)})"><g class="upright"><text class="hub-letter" fill="${ag.color}">${ag.name[0]}</text></g></g>`;
-  if (withLabels) {
-    const sub = d ? (d.score != null ? `score ${d.score} · ${st}` : st) : ag.sub;
-    s += `<g transform="translate(${g.label[0].toFixed(1)},${g.label[1].toFixed(1)})"><g class="upright">
-      <text class="dlabel" data-hub="${ag.id}">${ag.name.toUpperCase()}</text>
-      <text class="dsub" y="22">/${ag.skill} · ${esc(sub)}</text></g></g>`;
-  }
-  return s + "</g>";
-}
-
 /* =========================================================
-   LIVE MAP (canvas). A floating brain core, breathing constellations,
-   draggable nodes on springs that return to their place, and signals.
+   LIVE ENGINE (canvas). One set of spring nodes drives two views:
+   the Map (whole constellation around the brain core) and the
+   Agents carousel (one agent large in the middle, neighbors at the sides).
    ========================================================= */
-const cv = $("map");
-const cx2d = cv.getContext("2d");
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let theta = 0, GEO = [];                    // theta in degrees, kept for focusIndex/rotateTo
+let theta = 0, GEO = [];                    // map rotation in degrees
 let NODES = [], LINKS = [], HUBS = [], BRANCHES = [], STARS = [], BRIGHT = [], GALAXY = [], CORE = [], CORE_PAIRS = [], PULSES = [], METEORS = [];
-let NEBULA = null, nextMeteor = 4;
-let W = 0, H = 0, DPR = 1, SCALE = 1;
+let NEBULA = null, nextMeteor = 4, nextPulse = 0;
 let spin = REDUCED ? 0 : 3.2;               // degrees per second: one turn in about 2 minutes
-let spinVel = 0;                            // extra spin from a flick, decays
-let target = null;                          // degrees to ease toward (arrow buttons)
-let idleAt = 0;                             // time when auto drift may resume
-let hoverNode = null, hoverCore = false, grab = null, last = performance.now(), clock = 0;
+let spinVel = 0, target = null;
+let hover = null, hoverCore = false, grab = null, last = performance.now(), clock = 0;
+let CAR = 0;                                // carousel position, eases toward the focused agent
 
 const STAT_RGB = { ok: "143,240,192", warn: "255,212,121", alert: "255,143,143", skipped: "141,144,184" };
 const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
+const isSkipped = (k) => { const d = agentData(AGENTS[k].id); return !!(d && d.status === "skipped"); };
 
+/* ---------- the two drawing surfaces ---------- */
+function surface(id) { const cv = $(id); return { cv, g: cv.getContext("2d"), W: 0, H: 0, DPR: 1 }; }
+const MAP = surface("map"), CAR_S = surface("acv");
+let W = 0, H = 0, SCALE = 1;                // map size, kept as globals for the background layers
+
+function fit(S) {
+  const rc = S.cv.getBoundingClientRect();
+  S.DPR = Math.min(2, devicePixelRatio || 1);
+  S.W = rc.width; S.H = rc.height;
+  S.cv.width = Math.round(S.W * S.DPR); S.cv.height = Math.round(S.H * S.DPR);
+  if (S === MAP) { W = S.W; H = S.H; SCALE = Math.min(W / 1280, (H - (W < 640 ? 230 : 150)) / 1200); paintNebula(); }   // room for the floating controls
+}
+function resize() { if (MAP.cv.clientWidth) fit(MAP); if (CAR_S.cv.clientWidth) fit(CAR_S); }
+addEventListener("resize", resize);
+
+/* ---------- transforms: screen = origin + scale * rotate(world - pivot) ---------- */
+const T = (ox, oy, s, ang, hx = 0, hy = 0, alpha = 1) => ({ ox, oy, s, c: Math.cos(ang), sn: Math.sin(ang), hx, hy, alpha });
+const toS = (t, x, y) => { const dx = x - t.hx, dy = y - t.hy; return [t.ox + t.s * (dx * t.c - dy * t.sn), t.oy + t.s * (dx * t.sn + dy * t.c)]; };
+const toW = (t, px, py) => { const dx = (px - t.ox) / t.s, dy = (py - t.oy) / t.s; return [t.hx + dx * t.c + dy * t.sn, t.hy - dx * t.sn + dy * t.c]; };
+const rad = () => (theta * Math.PI) / 180;
+const mapT = () => T(W / 2, H / 2, SCALE, rad());
+const wrapN = (v) => ((v % N) + N * 1.5) % N - N / 2;      // signed distance around the ring, in agents
+
+// Agents view: where agent k sits in the carousel right now (null when off stage).
+function slotT(k) {
+  const S = CAR_S, o = wrapN(k - CAR), ao = Math.abs(o);
+  const narrow = S.W < 640;
+  if (ao > (narrow ? 1.6 : 2.6)) return null;
+  const base = Math.min((S.H * 0.8 - 40) / 300, (S.W * (narrow ? 0.86 : 0.38)) / 440);
+  const s = base * (ao <= 1 ? 1 - 0.45 * ao : 0.55 - 0.18 * (ao - 1));
+  const x = S.W / 2 + o * S.W * (narrow ? 0.4 : 0.235);
+  const alpha = ao <= 1 ? 1 - 0.42 * ao : Math.max(0, 0.58 - 0.4 * (ao - 1));
+  const h = HUBS[k];
+  return T(x, S.H * 0.8, s, -Math.PI / 2 - GEO[k].a, h.rx, h.ry, alpha);
+}
+
+/* ---------- build ---------- */
 function buildMap() {
   GEO = AGENTS.map((_, k) => geometry(k));
   NODES = []; LINKS = []; HUBS = []; BRANCHES = [];
@@ -388,38 +426,34 @@ function buildMap() {
       b.pts.slice(1).forEach((p, i, arr) => {
         const tip = i === arr.length - 1;
         const n = add(p[0], p[1], tip
-          ? { kind: b.item ? "item" : "empty", agent: ag, item: b.item, r: b.item ? (b.item.kind === "rec" ? 8 : 7) : 5.5 }
-          : { kind: "star", agent: ag, r: 2.6 });
-        LINKS.push({ a: prev, b: n, len: Math.hypot(n.rx - prev.rx, n.ry - prev.ry), dim: !b.item });
+          ? { kind: b.item ? "item" : "empty", agent: ag, k, item: b.item, r: b.item ? (b.item.kind === "rec" ? 8 : 7) : 5.5 }
+          : { kind: "star", agent: ag, k, r: 2.6 });
+        LINKS.push({ a: prev, b: n, k, len: Math.hypot(n.rx - prev.rx, n.ry - prev.ry), dim: !b.item });
         chain.push(n);
         prev = n;
       });
       b.twigs.forEach((t) => {
         const from = chain.reduce((best, n) => (Math.hypot(n.rx - t[0][0], n.ry - t[0][1]) < Math.hypot(best.rx - t[0][0], best.ry - t[0][1]) ? n : best), chain[1] || hub);
-        const n = add(t[1][0], t[1][1], { kind: "star", agent: ag, r: 2, twig: true });
-        LINKS.push({ a: from, b: n, len: Math.hypot(n.rx - from.rx, n.ry - from.ry), dim: true });
+        const n = add(t[1][0], t[1][1], { kind: "star", agent: ag, k, r: 2, twig: true });
+        LINKS.push({ a: from, b: n, k, len: Math.hypot(n.rx - from.rx, n.ry - from.ry), dim: true });
       });
-      BRANCHES.push({ hub, chain, live: !!b.item });
+      BRANCHES.push({ hub, chain, k, live: !!b.item });
     });
   });
-  // background stars at three depths, for a little parallax
   const TINTS = ["255,255,255", "255,255,255", "205,220,255", "180,200,255", "255,236,214", "232,210,255"];
   STARS = Array.from({ length: 650 }, () => ({ x: r() * 2000 - 1000, y: r() * 1900 - 950, s: 0.35 + Math.pow(r(), 3) * 1.6, z: 0.2 + r() * 0.8, tw: r() * 6, tws: 0.6 + r() * 2, c: TINTS[Math.floor(r() * TINTS.length)] }));
   BRIGHT = Array.from({ length: 16 }, () => ({ x: r() * 1900 - 950, y: r() * 1800 - 900, s: 1.4 + r() * 1.4, z: 0.5 + r() * 0.5, tw: r() * 6, c: TINTS[Math.floor(r() * TINTS.length)] }));
-  // a faint three-arm spiral galaxy around the core
   const ARM_RGB = ["170,140,255", "120,160,255", "235,140,210", "200,190,255"];
   GALAXY = Array.from({ length: 1300 }, (_, i) => {
     const arm = i % 3, t = Math.pow(r(), 0.7), radius = 110 + t * 620;
     const ang = (arm * 2 * Math.PI) / 3 + radius * 0.0105 + (r() - 0.5) * (0.5 + t * 0.6);
     return { x: Math.cos(ang) * radius, y: Math.sin(ang) * radius * 0.92, s: 0.4 + r() * 1.1, al: (0.05 + r() * 0.22) * (1 - t * 0.55), c: ARM_RGB[Math.floor(r() * ARM_RGB.length)] };
   });
-  // core: points on a sphere (golden spiral), with fixed neighbor pairs for the neural web
   CORE = [];
   const NC = 240, GA = Math.PI * (3 - Math.sqrt(5));
   for (let i = 0; i < NC; i++) {
-    const y = 1 - (i / (NC - 1)) * 2, rad = Math.sqrt(1 - y * y), a = GA * i;
-    const jitter = 0.86 + r() * 0.2;
-    CORE.push({ x: Math.cos(a) * rad * jitter, y: y * jitter, z: Math.sin(a) * rad * jitter, s: 0.7 + r() * 1.2 });
+    const y = 1 - (i / (NC - 1)) * 2, rr = Math.sqrt(1 - y * y), a = GA * i, j = 0.86 + r() * 0.2;
+    CORE.push({ x: Math.cos(a) * rr * j, y: y * j, z: Math.sin(a) * rr * j, s: 0.7 + r() * 1.2 });
   }
   CORE_PAIRS = [];
   for (let i = 0; i < NC; i++) for (let j = i + 1; j < NC; j++) {
@@ -432,19 +466,8 @@ function buildMap() {
   updateFocus();
 }
 
-function resize() {
-  const rc = cv.getBoundingClientRect();
-  DPR = Math.min(2, devicePixelRatio || 1);
-  W = rc.width; H = rc.height;
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-  SCALE = Math.min(W / 1280, H / 1200);
-  paintNebula();
-}
-addEventListener("resize", resize);
-
-// Soft clouds of color, painted once at half resolution and turned slowly behind everything.
 function paintNebula() {
-  const D = Math.ceil(Math.hypot(W, H) * 0.5) + 2;      // half-res square that covers the screen at any angle
+  const D = Math.ceil(Math.hypot(W, H) * 0.5) + 2;
   NEBULA = document.createElement("canvas");
   NEBULA.width = NEBULA.height = D;
   const n = NEBULA.getContext("2d"), r = rng(23);
@@ -458,29 +481,17 @@ function paintNebula() {
     grd.addColorStop(0, `rgba(${rgb},${a})`); grd.addColorStop(0.5, `rgba(${rgb},${a * 0.4})`); grd.addColorStop(1, `rgba(${rgb},0)`);
     n.fillStyle = grd; n.fillRect(0, 0, D, D);
   }
-  // a brighter galactic center glow
   const c = n.createRadialGradient(D / 2, D / 2, 0, D / 2, D / 2, D * 0.22);
   c.addColorStop(0, "rgba(180,150,255,.28)"); c.addColorStop(0.4, "rgba(120,90,220,.12)"); c.addColorStop(1, "rgba(80,60,180,0)");
   n.fillStyle = c; n.fillRect(0, 0, D, D);
 }
 
-/* ---------- coordinates ---------- */
-const rad = () => (theta * Math.PI) / 180;
-function toScreen(x, y) {
-  const a = rad(), c = Math.cos(a), s = Math.sin(a);
-  return [W / 2 + (x * c - y * s) * SCALE, H / 2 + (x * s + y * c) * SCALE];
-}
-function toWorld(px, py) {
-  const a = -rad(), c = Math.cos(a), s = Math.sin(a);
-  const x = (px - W / 2) / SCALE, y = (py - H / 2) / SCALE;
-  return [x * c - y * s, x * s + y * c];
-}
-
-/* ---------- physics: each node springs to its resting place, links act like soft ropes ---------- */
+/* ---------- physics: springs home, links like soft ropes ---------- */
 const K_HOME = 26, K_LINK = 140, DAMP = 7.5;
 function step(dt) {
+  const held = grab && grab.node;
   for (const n of NODES) {
-    if (n === (grab && grab.node)) continue;
+    if (n === held) continue;
     const fx = REDUCED ? 0 : Math.sin(clock * 0.9 + n.ph) * n.amp;
     const fy = REDUCED ? 0 : Math.cos(clock * 0.7 + n.ph * 1.3) * n.amp;
     const k = n.kind === "hub" ? K_HOME * 2.2 : K_HOME;
@@ -490,18 +501,17 @@ function step(dt) {
   for (const l of LINKS) {
     const dx = l.b.x - l.a.x, dy = l.b.y - l.a.y, d = Math.hypot(dx, dy) || 0.001;
     const f = (K_LINK * (d - l.len)) / d;
-    if (l.a !== (grab && grab.node)) { l.a.ax += f * dx * 0.5; l.a.ay += f * dy * 0.5; }
-    if (l.b !== (grab && grab.node)) { l.b.ax -= f * dx; l.b.ay -= f * dy; }
+    if (l.a !== held) { l.a.ax += f * dx * 0.5; l.a.ay += f * dy * 0.5; }
+    if (l.b !== held) { l.b.ax -= f * dx; l.b.ay -= f * dy; }
   }
   for (const n of NODES) {
-    if (n === (grab && grab.node)) continue;
+    if (n === held) continue;
     n.vx += n.ax * dt; n.vy += n.ay * dt;
     n.x += n.vx * dt; n.y += n.vy * dt;
   }
 }
 
-/* ---------- signals that travel from the core out to the agents ---------- */
-let nextPulse = 0;
+/* ---------- signals ---------- */
 function spawnPulse() {
   const live = BRANCHES.filter((b) => b.live);
   const pool = live.length ? live : BRANCHES;
@@ -509,30 +519,24 @@ function spawnPulse() {
   if (b) PULSES.push({ b, t: 0, speed: 0.35 + Math.random() * 0.25, rgb: hexRgb(b.hub.agent.color) });
 }
 function pulsePoint(p) {
-  // path: core edge -> hub -> chain to the tip; t runs 0..1 across all segments
   const pts = [[p.b.hub.x * 0.5, p.b.hub.y * 0.5], ...p.b.chain.map((n) => [n.x, n.y])];
   const segs = pts.length - 1, u = Math.min(p.t * segs, segs - 1e-6), i = Math.floor(u), f = u - i;
-  return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f];
+  return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f, i];
 }
 
-/* ---------- drawing ---------- */
-function draw() {
-  const g = cx2d;
-  g.setTransform(DPR, 0, 0, DPR, 0, 0);
-  g.clearRect(0, 0, W, H);
-
+/* ---------- drawing: background (map only) ---------- */
+function drawBackground(g) {
   const a = rad();
-  const SS = Math.max(0.55, Math.min(1.4, Math.min(W, H) / 900));   // star size follows the screen
-  // nebula turns slowly, a bit behind the map
+  const SS = Math.max(0.55, Math.min(1.4, Math.min(W, H) / 900));
   if (NEBULA) {
-    g.save(); g.translate(W / 2, H / 2); g.rotate(a * 0.25 + (REDUCED ? 0 : clock * 0.004));
+    g.save(); g.translate(W / 2, H / 2); g.rotate(a * 0.25 + clock * 0.004);
     const D = NEBULA.width * 2; g.globalAlpha = 0.95; g.drawImage(NEBULA, -D / 2, -D / 2, D, D);
     g.restore(); g.globalAlpha = 1;
   }
-  // star field: each layer drifts with the rotation at its own depth
+  const SC = Math.max(SCALE, 0.55);
   for (const s of STARS) {
     const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
-    const x = W / 2 + (s.x * c - s.y * sn) * Math.max(SCALE, 0.55), y = H / 2 + (s.x * sn + s.y * c) * Math.max(SCALE, 0.55);
+    const x = W / 2 + (s.x * c - s.y * sn) * SC, y = H / 2 + (s.x * sn + s.y * c) * SC;
     if (x < -4 || y < -4 || x > W + 4 || y > H + 4) continue;
     const tw = REDUCED ? 0.7 : 0.45 + 0.4 * Math.sin(clock * s.tws + s.tw);
     g.fillStyle = `rgba(${s.c},${(tw * (0.35 + s.z * 0.65)).toFixed(3)})`;
@@ -540,10 +544,9 @@ function draw() {
     if (rr < 0.9) g.fillRect(x - rr, y - rr, rr * 2, rr * 2);
     else { g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill(); }
   }
-  // a few bright stars with a soft cross flare
   for (const s of BRIGHT) {
     const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
-    const x = W / 2 + (s.x * c - s.y * sn) * Math.max(SCALE, 0.55), y = H / 2 + (s.x * sn + s.y * c) * Math.max(SCALE, 0.55);
+    const x = W / 2 + (s.x * c - s.y * sn) * SC, y = H / 2 + (s.x * sn + s.y * c) * SC;
     if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
     const tw = REDUCED ? 0.8 : 0.55 + 0.45 * Math.sin(clock * 0.9 + s.tw);
     const rr = s.s * SS, L = rr * (5 + 4 * tw);
@@ -554,136 +557,143 @@ function draw() {
     g.beginPath(); g.moveTo(x - L, y); g.lineTo(x + L, y); g.moveTo(x, y - L); g.lineTo(x, y + L); g.stroke();
     g.fillStyle = `rgba(255,255,255,${0.9 * tw})`; g.beginPath(); g.arc(x, y, rr * 0.7, 0, 6.283); g.fill();
   }
-  // spiral galaxy dust turns with the map, slightly slower
-  {
-    const ga = a * 0.7, c = Math.cos(ga), sn = Math.sin(ga);
-    for (const p of GALAXY) {
-      const x = W / 2 + (p.x * c - p.y * sn) * SCALE, y = H / 2 + (p.x * sn + p.y * c) * SCALE;
-      g.fillStyle = `rgba(${p.c},${p.al})`;
-      const rr = p.s * Math.max(0.6, SCALE * 1.2);
-      g.fillRect(x - rr / 2, y - rr / 2, rr, rr);
-    }
+  const ga = a * 0.7, gc = Math.cos(ga), gs = Math.sin(ga);
+  for (const p of GALAXY) {
+    const x = W / 2 + (p.x * gc - p.y * gs) * SCALE, y = H / 2 + (p.x * gs + p.y * gc) * SCALE;
+    g.fillStyle = `rgba(${p.c},${p.al})`;
+    const rr = p.s * Math.max(0.6, SCALE * 1.2);
+    g.fillRect(x - rr / 2, y - rr / 2, rr, rr);
   }
-  // shooting stars
   for (const m of METEORS) {
-    const k = m.t / m.life, fade = Math.sin(Math.PI * k);
+    const fade = Math.sin(Math.PI * (m.t / m.life));
     const x = m.x + m.vx * m.t, y = m.y + m.vy * m.t;
     const grd = g.createLinearGradient(x, y, x - m.vx * 0.12, y - m.vy * 0.12);
     grd.addColorStop(0, `rgba(255,255,255,${0.9 * fade})`); grd.addColorStop(1, "rgba(255,255,255,0)");
     g.strokeStyle = grd; g.lineWidth = 1.6;
     g.beginPath(); g.moveTo(x, y); g.lineTo(x - m.vx * 0.12, y - m.vy * 0.12); g.stroke();
   }
+}
 
-  const focus = focusIndex();
-  // faint dotted spokes from the core to each hub
-  g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
-  for (const h of HUBS) {
-    const [x1, y1] = toScreen(h.x * 0.55, h.y * 0.55), [x2, y2] = toScreen(h.x, h.y);
-    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-  }
-  g.setLineDash([]);
-
-  // branches
-  const hiAgent = (grab && grab.node && grab.node.agent) || (hoverNode && hoverNode.agent) || null;
+/* ---------- drawing: the constellations, through any transform ---------- */
+// tf(k) gives the transform for agent k, or null to skip it. fromCore: signals start at the core.
+function drawGraph(g, tf, fromCore, byPerson) {
+  const TF = AGENTS.map((_, k) => tf(k));
+  const hiK = grab && grab.node ? grab.node.k : hover && hover.n ? hover.n.k : -1;
   for (const l of LINKS) {
-    const [x1, y1] = toScreen(l.a.x, l.a.y), [x2, y2] = toScreen(l.b.x, l.b.y);
-    const skipped = l.a.agent && agentData(l.a.agent.id) && agentData(l.a.agent.id).status === "skipped";
-    let alpha = l.dim ? 0.3 : 0.55;
-    if (skipped) alpha *= 0.5;
-    if (hiAgent && l.a.agent === hiAgent) alpha = Math.min(0.95, alpha + 0.3);
-    // a stretched link glows a little brighter
+    const t = TF[l.k]; if (!t) continue;
+    const [x1, y1] = toS(t, l.a.x, l.a.y), [x2, y2] = toS(t, l.b.x, l.b.y);
+    const skipped = isSkipped(l.k), hi = l.k === hiK;
+    let alpha = (l.dim ? 0.3 : 0.55) * (skipped ? 0.5 : 1);
+    if (hi) alpha = Math.min(0.95, alpha + 0.3);
+    alpha *= t.alpha;
+    const rgb = hexRgb(AGENTS[l.k].color);
     const stretch = Math.max(0, Math.hypot(l.b.x - l.a.x, l.b.y - l.a.y) / l.len - 1);
-    g.strokeStyle = stretch > 0.05 ? `rgba(${hexRgb(l.a.agent.color)},${Math.min(1, alpha + stretch)})` : `rgba(255,255,255,${alpha})`;
+    const lw = Math.max(1, Math.min(2.2, t.s * 1.6));
     if (!l.dim) {
-      const prev = g.strokeStyle;
-      g.strokeStyle = `rgba(${hexRgb(l.a.agent.color)},${(skipped ? 0.04 : 0.1) + (hiAgent && l.a.agent === hiAgent ? 0.12 : 0)})`;
-      g.lineWidth = 5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-      g.strokeStyle = prev;
+      g.strokeStyle = `rgba(${rgb},${((skipped ? 0.04 : 0.1) + (hi ? 0.12 : 0)) * t.alpha})`;
+      g.lineWidth = lw * 4; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
     }
-    g.lineWidth = 1.3;
+    g.strokeStyle = stretch > 0.05 ? `rgba(${rgb},${Math.min(1, alpha + stretch)})` : `rgba(255,255,255,${alpha})`;
+    g.lineWidth = lw;
     g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
   }
-
-  // signals
   for (const p of PULSES) {
-    const [wx, wy] = pulsePoint(p), [x, y] = toScreen(wx, wy);
-    const fade = Math.sin(Math.PI * Math.min(1, p.t));
-    const grd = g.createRadialGradient(x, y, 0, x, y, 9);
+    const t = TF[p.b.k]; if (!t) continue;
+    const [wx, wy, seg] = pulsePoint(p);
+    if (!fromCore && seg === 0) continue;
+    const [x, y] = toS(t, wx, wy), fade = Math.sin(Math.PI * Math.min(1, p.t)) * t.alpha, rr = 9 * Math.max(0.8, t.s * 1.3);
+    const grd = g.createRadialGradient(x, y, 0, x, y, rr);
     grd.addColorStop(0, `rgba(${p.rgb},${0.9 * fade})`); grd.addColorStop(1, `rgba(${p.rgb},0)`);
-    g.fillStyle = grd; g.beginPath(); g.arc(x, y, 9, 0, 6.283); g.fill();
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
   }
-
-  // nodes
   for (const n of NODES) {
-    const [x, y] = toScreen(n.x, n.y);
-    const skipped = n.agent && agentData(n.agent.id) && agentData(n.agent.id).status === "skipped";
+    if (n.kind === "hub") continue;
+    const t = TF[n.k]; if (!t) continue;
+    const [x, y] = toS(t, n.x, n.y), f = Math.max(0.75, t.s * 1.15), skipped = isSkipped(n.k);
+    g.globalAlpha = t.alpha;
     if (n.kind === "star") {
       g.fillStyle = `rgba(255,255,255,${skipped ? 0.35 : 0.8})`;
-      g.beginPath(); g.arc(x, y, n.r * Math.max(0.7, SCALE * 1.1), 0, 6.283); g.fill();
+      g.beginPath(); g.arc(x, y, n.r * f * 0.95, 0, 6.283); g.fill();
     } else if (n.kind === "empty") {
       g.strokeStyle = "rgba(255,255,255,.35)"; g.lineWidth = 1.5;
-      g.beginPath(); g.arc(x, y, n.r * Math.max(0.75, SCALE * 1.1), 0, 6.283); g.stroke();
-    } else if (n.kind === "item") {
-      const rr = n.r * Math.max(0.8, SCALE * 1.15) * (n === hoverNode ? 1.35 : 1);
-      const glow = g.createRadialGradient(x, y, 0, x, y, rr * 3);
-      glow.addColorStop(0, `rgba(${hexRgb(n.item.color)},.55)`); glow.addColorStop(1, `rgba(${hexRgb(n.item.color)},0)`);
-      g.fillStyle = glow; g.beginPath(); g.arc(x, y, rr * 3, 0, 6.283); g.fill();
+      g.beginPath(); g.arc(x, y, n.r * f, 0, 6.283); g.stroke();
+    } else {
+      const rr = n.r * f * (hover && hover.n === n ? 1.35 : 1);
+      const rgb = hexRgb(n.item.color), tw = REDUCED ? 1 : 0.85 + 0.15 * Math.sin(clock * 2 + n.ph);
+      const glow = g.createRadialGradient(x, y, 0, x, y, rr * 3.2);
+      glow.addColorStop(0, `rgba(${rgb},${0.55 * tw})`); glow.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = glow; g.beginPath(); g.arc(x, y, rr * 3.2, 0, 6.283); g.fill();
       g.fillStyle = n.item.color; g.strokeStyle = n.agent.color; g.lineWidth = 2;
       g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill(); g.stroke();
     }
-  }
-
-  // hubs and labels
-  for (const h of HUBS) {
-    const [x, y] = toScreen(h.x, h.y);
-    const rr = 17 * Math.max(0.75, SCALE * 1.1) * (h === hoverNode ? 1.15 : 1);
-    const ring = h.status ? `rgb(${STAT_RGB[h.status]})` : h.agent.color;
-    const pulse = h.status === "alert" && !REDUCED ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 3.2)) : 1;
-    g.fillStyle = "rgba(30,32,70,.92)"; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
-    g.globalAlpha = pulse; g.strokeStyle = ring; g.lineWidth = 2.4; g.stroke(); g.globalAlpha = 1;
-    if (h.status === "alert" && !REDUCED) {
-      const wave = (clock * 0.8) % 1;
-      g.strokeStyle = `rgba(${STAT_RGB.alert},${(1 - wave) * 0.5})`; g.lineWidth = 1.5;
-      g.beginPath(); g.arc(x, y, rr + wave * 22, 0, 6.283); g.stroke();
-    }
-    g.fillStyle = h.agent.color; g.font = `600 ${Math.round(Math.max(11, 15 * SCALE * 1.1))}px Cinzel, serif`;
-    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(h.agent.name[0], x, y + 1);
-
-    let [lx, ly] = toScreen(h.label[0], h.label[1]);
-    const d = agentData(h.agent.id), dim = d && d.status === "skipped";
-    const sub = d ? (d.score != null ? `score ${d.score} · ${d.status}` : d.status) : h.agent.sub;
-    const isFocus = h.k === focus;
-    g.globalAlpha = dim ? 0.5 : isFocus ? 1 : 0.85;
-    g.fillStyle = "#f2f0ff";
-    g.font = `600 ${Math.round(Math.max(12, 25 * SCALE))}px Cinzel, serif`;
-    if ("letterSpacing" in g) g.letterSpacing = `${(Math.max(12, 25 * SCALE) * 0.16).toFixed(1)}px`;
-    // keep the label on screen on narrow phones
-    const half = g.measureText(h.agent.name.toUpperCase()).width / 2 + 6;
-    lx = Math.max(half, Math.min(W - half, lx));
-    g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(30,32,70,.9)";
-    g.strokeText(h.agent.name.toUpperCase(), lx, ly);
-    g.fillText(h.agent.name.toUpperCase(), lx, ly);
-    if ("letterSpacing" in g) g.letterSpacing = "0px";
-    g.fillStyle = "#a9acd6"; g.font = `${Math.round(Math.max(9, 12 * SCALE))}px "Space Grotesk", sans-serif`;
-    g.lineWidth = 3; g.strokeText(`/${h.agent.skill} · ${sub}`, lx, ly + Math.max(14, 22 * SCALE));
-    g.fillText(`/${h.agent.skill} · ${sub}`, lx, ly + Math.max(14, 22 * SCALE));
     g.globalAlpha = 1;
   }
+  for (const h of HUBS) {
+    const t = TF[h.k]; if (!t) continue;
+    const [x, y] = toS(t, h.x, h.y);
+    const rr = 17 * Math.max(0.75, t.s * 1.1) * (hover && hover.n === h ? 1.15 : 1);
+    const ring = h.status ? `rgb(${STAT_RGB[h.status]})` : h.agent.color;
+    const pulse = h.status === "alert" ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 3.2)) : 1;
+    g.globalAlpha = t.alpha;
+    g.fillStyle = "rgba(24,26,60,.94)"; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
+    g.globalAlpha = t.alpha * pulse; g.strokeStyle = ring; g.lineWidth = 2.4; g.stroke(); g.globalAlpha = t.alpha;
+    if (h.status === "alert") {
+      const wave = (clock * 0.8) % 1;
+      g.strokeStyle = `rgba(${STAT_RGB.alert},${(1 - wave) * 0.5})`; g.lineWidth = 1.5;
+      g.beginPath(); g.arc(x, y, rr + wave * 22 * Math.max(0.8, t.s * 1.5), 0, 6.283); g.stroke();
+    }
+    g.fillStyle = h.agent.color; g.font = `600 ${Math.round(Math.max(11, 15 * t.s * 1.1))}px Cinzel, serif`;
+    g.textAlign = "center"; g.textBaseline = "middle"; g.fillText((byPerson ? h.agent.person : h.agent.name)[0], x, y + 1);
+    g.globalAlpha = 1;
+  }
+}
 
+function label(g, text, sub, x, y, size, alpha, maxW) {
+  g.globalAlpha = alpha;
+  g.textAlign = "center"; g.textBaseline = "middle";
+  g.font = `600 ${Math.round(size)}px Cinzel, serif`;
+  if ("letterSpacing" in g) g.letterSpacing = `${(size * 0.16).toFixed(1)}px`;
+  const half = g.measureText(text).width / 2 + 6;
+  x = Math.max(half, Math.min(maxW - half, x));
+  g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(12,12,34,.9)";
+  g.strokeText(text, x, y); g.fillStyle = "#f2f0ff"; g.fillText(text, x, y);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  if (sub) {
+    g.font = `${Math.round(Math.max(9, size * 0.48))}px "Space Grotesk", sans-serif`;
+    g.lineWidth = 3; g.strokeText(sub, x, y + size * 0.9);
+    g.fillStyle = "#a9acd6"; g.fillText(sub, x, y + size * 0.9);
+  }
+  g.globalAlpha = 1;
+  return x;
+}
+const subOf = (k) => { const d = agentData(AGENTS[k].id); return `/${AGENTS[k].skill} · ${d ? (d.score != null ? `score ${d.score} · ${d.status}` : d.status) : AGENTS[k].sub}`; };
+
+function drawMap() {
+  const g = MAP.g;
+  g.setTransform(MAP.DPR, 0, 0, MAP.DPR, 0, 0);
+  g.clearRect(0, 0, W, H);
+  drawBackground(g);
+  const t = mapT(), focus = focusIndex();
+  g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
+  for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.55, h.y * 0.55), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  g.setLineDash([]);
+  drawGraph(g, () => t, true, true);
+  HUBS.forEach((h, k) => {
+    const [lx, ly] = toS(t, h.label[0], h.label[1]);
+    h.lx = label(g, h.agent.person.toUpperCase(), null, lx, ly, Math.max(12, 25 * SCALE), isSkipped(k) ? 0.5 : k === focus ? 1 : 0.85, W);
+    h.ly = ly;
+  });
   drawCore(g);
 }
 
 function drawCore(g) {
-  const [x0, y0] = [W / 2, H / 2];
+  const x0 = W / 2, y0 = H / 2;
   const Rr = 82 * SCALE * (hoverCore ? 1.06 : 1);
-  const breathe = REDUCED ? 1 : 1 + 0.03 * Math.sin(clock * 1.4);
-  const alert = R && R.agents.some((a) => a.status === "alert");
+  const breathe = 1 + 0.03 * Math.sin(clock * 1.4);          // the brain always moves
   const halo = g.createRadialGradient(x0, y0, 0, x0, y0, Rr * 2.2);
   halo.addColorStop(0, "rgba(200,180,255,.38)"); halo.addColorStop(0.5, "rgba(130,100,240,.14)"); halo.addColorStop(1, "rgba(90,70,200,0)");
   g.fillStyle = halo; g.beginPath(); g.arc(x0, y0, Rr * 2.2, 0, 6.283); g.fill();
-
-  // rotate the sphere: spin around y, tilt around x
-  const ay = REDUCED ? 0.6 : clock * 0.35, ax = 0.35 + (REDUCED ? 0 : Math.sin(clock * 0.2) * 0.15);
+  const ay = clock * 0.35, ax = 0.35 + Math.sin(clock * 0.2) * 0.15;
   const cy = Math.cos(ay), sy = Math.sin(ay), cxr = Math.cos(ax), sxr = Math.sin(ax);
   const P = CORE.map((p) => {
     const x1 = p.x * cy + p.z * sy, z1 = -p.x * sy + p.z * cy;
@@ -701,151 +711,183 @@ function drawCore(g) {
     g.fillStyle = `rgba(255,255,255,${(0.25 + 0.75 * z).toFixed(3)})`;
     g.beginPath(); g.arc(P[i][0], P[i][1], p.s * (0.6 + 0.6 * z) * Math.max(0.7, SCALE * 1.2), 0, 6.283); g.fill();
   });
-  g.strokeStyle = alert ? "rgba(255,143,143,.55)" : "rgba(255,255,255,.15)"; g.lineWidth = 1;
-  g.beginPath(); g.arc(x0, y0, Rr * 1.08, 0, 6.283); g.stroke();
-  g.font = `600 ${Math.round(Math.max(11, 17 * SCALE))}px Cinzel, serif`;
-  if ("letterSpacing" in g) g.letterSpacing = `${(Math.max(11, 17 * SCALE) * 0.35).toFixed(1)}px`;
+  const fs = Math.max(11, 17 * SCALE);
+  g.font = `600 ${Math.round(fs)}px Cinzel, serif`;
+  if ("letterSpacing" in g) g.letterSpacing = `${(fs * 0.35).toFixed(1)}px`;
   g.textAlign = "center"; g.textBaseline = "middle";
   g.lineWidth = 4; g.strokeStyle = "rgba(30,30,70,.85)"; g.strokeText("JARVIS", x0, y0);
   g.fillStyle = "#fff"; g.fillText("JARVIS", x0, y0);
   if ("letterSpacing" in g) g.letterSpacing = "0px";
 }
 
-/* ---------- loop ---------- */
+function drawCarousel() {
+  const S = CAR_S, g = S.g;
+  g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0);
+  g.clearRect(0, 0, S.W, S.H);
+  // soft light behind the agent in the middle
+  const glow = g.createRadialGradient(S.W / 2, S.H * 0.55, 0, S.W / 2, S.H * 0.55, Math.max(S.W, S.H) * 0.45);
+  glow.addColorStop(0, `rgba(${hexRgb(AGENTS[focusIndex()].color)},.10)`); glow.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = glow; g.fillRect(0, 0, S.W, S.H);
+  drawGraph(g, slotT, false);
+  AGENTS.forEach((ag, k) => {
+    const t = slotT(k); if (!t) return;
+    const big = Math.abs(wrapN(k - CAR)) < 0.5;
+    if (!big && S.W < 640) { HUBS[k].cx = null; return; }   // phones: only the middle agent is named
+    HUBS[k].cx = label(g, ag.name.toUpperCase(), big ? subOf(k) : null, t.ox, S.H * 0.8 + 34 * Math.max(0.8, t.s * 1.2), big ? Math.max(14, Math.min(24, S.W / 34)) : 12, t.alpha, S.W);
+    HUBS[k].cy = S.H * 0.8 + 34 * Math.max(0.8, t.s * 1.2);
+  });
+}
+
+/* ---------- loop: the brain never stops ---------- */
 function frame(now) {
   const dt = Math.min(0.033, (now - last) / 1000);
   last = now; clock += dt;
-  if (view === "map" && cv.clientWidth && (cv.clientWidth !== W || cv.clientHeight !== H)) resize();
-  if (view === "map" && W > 0) {
-    if (target != null) {
-      const diff = target - theta;
-      theta += diff * Math.min(1, dt * 5);
-      if (Math.abs(diff) < 0.05) { theta = target; target = null; }
-    } else if (!(grab && grab.kind === "spin")) {
-      theta += spinVel * dt;
-      spinVel *= Math.pow(0.12, dt);              // flick momentum fades in about two seconds
-      if (now > idleAt) theta += spin * dt;
-    }
-    step(dt / 2); step(dt / 2);
-    if (!REDUCED) {
-      if (clock > nextPulse) { spawnPulse(); nextPulse = clock + (R ? 0.45 : 0.9) + Math.random() * 0.4; }
-      PULSES.forEach((p) => (p.t += dt * p.speed));
-      PULSES = PULSES.filter((p) => p.t < 1);
-      if (clock > nextMeteor) {
-        const fromLeft = Math.random() < 0.5, sp = 650 + Math.random() * 450, ang = (fromLeft ? 0.35 : Math.PI - 0.35) + (Math.random() - 0.5) * 0.4;
-        METEORS.push({ x: fromLeft ? Math.random() * W * 0.5 : W * 0.5 + Math.random() * W * 0.5, y: Math.random() * H * 0.45, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, t: 0, life: 0.7 + Math.random() * 0.5 });
-        nextMeteor = clock + 5 + Math.random() * 7;
-      }
-      METEORS.forEach((m) => (m.t += dt));
-      METEORS = METEORS.filter((m) => m.t < m.life);
-    }
-    updateFocus();
-    draw();
+  if (view === "map" && MAP.cv.clientWidth && (MAP.cv.clientWidth !== MAP.W || MAP.cv.clientHeight !== MAP.H)) fit(MAP);
+  if (view === "agents" && CAR_S.cv.clientWidth && (CAR_S.cv.clientWidth !== CAR_S.W || CAR_S.cv.clientHeight !== CAR_S.H)) fit(CAR_S);
+  if (target != null) {
+    const diff = target - theta;
+    theta += diff * Math.min(1, dt * 5);
+    if (Math.abs(diff) < 0.05) { theta = target; target = null; }
+  } else if (!(grab && grab.kind === "spin")) {
+    theta += (spinVel + (view === "map" ? spin : 0)) * dt;   // the carousel holds still on the agent you picked
+    spinVel *= Math.pow(0.12, dt);
   }
+  CAR += wrapN(focusIndex() - CAR) * Math.min(1, dt * 6);
+  CAR = ((CAR % N) + N) % N;
+  // a held node stays under the finger even while the map turns
+  if (grab && grab.kind === "node" && grab.moved) {
+    const t = grab.S === MAP ? mapT() : slotT(grab.node.k);
+    if (t) { const [wx, wy] = toW(t, grab.px, grab.py); grab.node.x = wx; grab.node.y = wy; grab.node.vx = grab.node.vy = 0; }
+  }
+  step(dt / 2); step(dt / 2);
+  if (clock > nextPulse) { spawnPulse(); nextPulse = clock + (R ? 0.45 : 0.9) + Math.random() * 0.4; }
+  PULSES.forEach((p) => (p.t += dt * p.speed));
+  PULSES = PULSES.filter((p) => p.t < 1);
+  if (!REDUCED && view === "map" && clock > nextMeteor) {
+    const fromLeft = Math.random() < 0.5, sp = 650 + Math.random() * 450, ang = (fromLeft ? 0.35 : Math.PI - 0.35) + (Math.random() - 0.5) * 0.4;
+    METEORS.push({ x: fromLeft ? Math.random() * W * 0.5 : W * 0.5 + Math.random() * W * 0.5, y: Math.random() * H * 0.45, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, t: 0, life: 0.7 + Math.random() * 0.5 });
+    nextMeteor = clock + 5 + Math.random() * 7;
+  }
+  METEORS.forEach((m) => (m.t += dt));
+  METEORS = METEORS.filter((m) => m.t < m.life);
+  updateFocus();
+  if (view === "map" && W > 0) drawMap();
+  if (view === "agents" && CAR_S.W > 0) drawCarousel();
   requestAnimationFrame(frame);
 }
 let lastFocus = -1;
 function updateFocus() {
   const f = focusIndex();
-  if (f !== lastFocus) { lastFocus = f; $("focusName").textContent = AGENTS[f].name.toUpperCase(); }
+  if (f !== lastFocus) {
+    lastFocus = f;
+    $("focusName").textContent = AGENTS[f].name.toUpperCase();
+    if (view === "agents") renderAgents();
+  }
 }
 
 /* ---------- interaction ---------- */
 const focusIndex = () => (((Math.round(-theta / STEP)) % N) + N) % N;
 function rotateTo(i) {
-  const want = -i * STEP;
-  // take the short way around
+  const want = -(((i % N) + N) % N) * STEP;
   target = theta + ((((want - theta) % 360) + 540) % 360) - 180;
-  spinVel = 0; idleAt = performance.now() + 6000;
-  if (view === "agents") { theta = target; target = null; renderAgents(); }
+  spinVel = 0;
 }
 $("rotL").onclick = () => rotateTo(focusIndex() - 1);
 $("rotR").onclick = () => rotateTo(focusIndex() + 1);
+$("cL").onclick = () => rotateTo(focusIndex() - 1);
+$("cR").onclick = () => rotateTo(focusIndex() + 1);
 
-function pickNode(px, py) {
+function pickNode(S, px, py) {
+  const tf = S === MAP ? (() => { const t = mapT(); return () => t; })() : slotT;
+  const TF = AGENTS.map((_, k) => tf(k));
   let best = null, bestD = 22;
   for (const n of NODES) {
-    if (n.kind === "empty" && !grab) continue;
-    const [x, y] = toScreen(n.x, n.y);
+    const t = TF[n.k]; if (!t || t.alpha < 0.15) continue;
+    if (n.kind === "empty") continue;
+    const [x, y] = toS(t, n.x, n.y);
     const d = Math.hypot(x - px, y - py) - (n.kind === "hub" ? 8 : n.kind === "item" ? 4 : -4);
     if (d < bestD) { bestD = d; best = n; }
   }
   if (!best) {
     for (const h of HUBS) {
-      const [lx, ly] = toScreen(h.label[0], h.label[1]);
-      if (Math.abs(px - lx) < 110 * Math.max(0.6, SCALE) && Math.abs(py - ly) < 20) return h;
+      const lx = S === MAP ? h.lx : h.cx, ly = S === MAP ? h.ly : h.cy;
+      if (lx == null || !TF[h.k]) continue;
+      if (Math.abs(px - lx) < 100 && Math.abs(py - ly) < 18) return h;
     }
   }
   return best;
 }
 const inCore = (px, py) => Math.hypot(px - W / 2, py - H / 2) < 90 * SCALE;
-const local = (e) => { const rc = cv.getBoundingClientRect(); return [e.clientX - rc.left, e.clientY - rc.top]; };
 
-cv.addEventListener("pointerdown", (e) => {
-  const [px, py] = local(e);
-  const node = pickNode(px, py);
-  cv.setPointerCapture(e.pointerId);
-  if (node) {
-    grab = { kind: "node", node, x: px, y: py, moved: false };
-  } else {
-    grab = { kind: "spin", x: px, y: py, moved: false, a0: Math.atan2(py - H / 2, px - W / 2), t0: theta, lastA: theta, lastT: performance.now(), core: inCore(px, py) };
-    target = null;
-  }
-  cv.classList.add("grabbing");
-});
-cv.addEventListener("pointermove", (e) => {
-  const [px, py] = local(e);
-  if (!grab) {
-    hoverNode = pickNode(px, py);
-    hoverCore = !hoverNode && inCore(px, py);
-    cv.style.cursor = hoverNode || hoverCore ? "pointer" : "grab";
-    showTip(e, hoverNode);
-    return;
-  }
-  if (!grab.moved && Math.hypot(px - grab.x, py - grab.y) > 6) grab.moved = true;
-  if (!grab.moved) return;
-  $("tip").style.display = "none";
-  if (grab.kind === "node") {
-    const [wx, wy] = toWorld(px, py);
-    grab.node.x = wx; grab.node.y = wy; grab.node.vx = 0; grab.node.vy = 0;
-  } else {
-    const a = Math.atan2(py - H / 2, px - W / 2);
-    let next = grab.t0 + ((a - grab.a0) * 180) / Math.PI;
-    const now = performance.now(), dtm = Math.max(1, now - grab.lastT);
-    spinVel = ((next - grab.lastA) / dtm) * 1000;
-    grab.lastA = next; grab.lastT = now;
-    theta = next;
-  }
-});
-function release(e) {
-  if (!grab) return;
-  const g = grab;
-  grab = null;
-  cv.classList.remove("grabbing");
-  idleAt = performance.now() + 2500;
-  if (g.kind === "spin") {
-    spinVel = Math.max(-240, Math.min(240, spinVel));
-    if (performance.now() - g.lastT > 80) spinVel = 0;
-    if (!g.moved && g.core) openCore();
-    return;
-  }
-  // a released node keeps its drag speed, then springs home
-  if (!g.moved) {
+function bindSurface(S) {
+  const cv = S.cv;
+  const local = (e) => { const rc = cv.getBoundingClientRect(); return [e.clientX - rc.left, e.clientY - rc.top]; };
+  cv.addEventListener("pointerdown", (e) => {
+    const [px, py] = local(e);
+    const node = pickNode(S, px, py);
+    cv.setPointerCapture(e.pointerId);
+    if (node) grab = { S, kind: "node", node, x: px, y: py, px, py, moved: false };
+    else if (S === MAP) { grab = { S, kind: "spin", x: px, y: py, moved: false, a0: Math.atan2(py - H / 2, px - W / 2), t0: theta, lastA: theta, lastT: performance.now(), core: inCore(px, py) }; target = null; }
+    else grab = { S, kind: "swipe", x: px, y: py, moved: false };
+    cv.classList.add("grabbing");
+  });
+  cv.addEventListener("pointermove", (e) => {
+    const [px, py] = local(e);
+    if (!grab) {
+      const n = pickNode(S, px, py);
+      hover = n ? { n, S } : null;
+      hoverCore = S === MAP && !n && inCore(px, py);
+      cv.style.cursor = n || hoverCore ? "pointer" : "grab";
+      showTip(e, n);
+      return;
+    }
+    if (grab.S !== S) return;
+    if (!grab.moved && Math.hypot(px - grab.x, py - grab.y) > 6) grab.moved = true;
+    if (!grab.moved) return;
+    $("tip").style.display = "none";
+    if (grab.kind === "node") { grab.px = px; grab.py = py; }
+    else if (grab.kind === "spin") {
+      const a = Math.atan2(py - H / 2, px - W / 2);
+      const next = grab.t0 + ((a - grab.a0) * 180) / Math.PI;
+      const now = performance.now(), dtm = Math.max(1, now - grab.lastT);
+      spinVel = ((next - grab.lastA) / dtm) * 1000 - spin;
+      grab.lastA = next; grab.lastT = now;
+      theta = next;
+    } else grab.dx = px - grab.x;
+  });
+  const release = () => {
+    if (!grab || grab.S !== S) return;
+    const g = grab;
+    grab = null;
+    cv.classList.remove("grabbing");
+    if (g.kind === "spin") {
+      spinVel = Math.max(-240, Math.min(240, spinVel));
+      if (performance.now() - g.lastT > 80) spinVel = 0;
+      if (!g.moved && g.core) openCore();
+      return;
+    }
+    if (g.kind === "swipe") {
+      if (g.moved && Math.abs(g.dx || 0) > 40) rotateTo(focusIndex() + (g.dx < 0 ? 1 : -1));
+      return;
+    }
+    if (g.moved) return;                    // a dragged node springs home on its own
     const n = g.node;
+    if (S === CAR_S && n.k !== focusIndex()) { rotateTo(n.k); return; }
     if (n.kind === "item") openAgent(n.agent.id, `${n.item.kind}-${n.item.i}`);
-    else if (n.kind === "hub") openAgent(n.agent.id);
-    else if (n.agent) openAgent(n.agent.id);
-  }
+    else openAgent(n.agent.id);
+  };
+  cv.addEventListener("pointerup", release);
+  cv.addEventListener("pointercancel", release);
+  cv.addEventListener("pointerleave", () => { if (!grab) { hover = null; hoverCore = false; $("tip").style.display = "none"; } });
 }
-cv.addEventListener("pointerup", release);
-cv.addEventListener("pointercancel", release);
-cv.addEventListener("pointerleave", () => { if (!grab) { hoverNode = null; hoverCore = false; $("tip").style.display = "none"; } });
+bindSurface(MAP);
+bindSurface(CAR_S);
 
 function showTip(e, n) {
   const tip = $("tip");
   if (!n || n.kind === "star" || n.kind === "empty") { tip.style.display = "none"; return; }
   if (n.kind === "item") tip.innerHTML = `<b>${esc(n.item.label)}</b><br><span class="muted">${esc(n.item.sub)}</span>`;
-  else { const d = agentData(n.agent.id); tip.innerHTML = `<b>${esc(n.agent.name)}</b><br><span class="muted">${d ? esc(d.summary) : esc(n.agent.sub)}</span>`; }
+  else { const d = agentData(n.agent.id); tip.innerHTML = `<b>${esc(view === "map" ? fullName(n.agent) : n.agent.name)}</b><br><span class="muted">${d ? esc(d.summary) : esc(n.agent.sub)}</span>`; }
   tip.style.display = "block";
   tip.style.left = Math.min(e.clientX + 14, innerWidth - 270) + "px";
   tip.style.top = e.clientY + 14 + "px";
@@ -857,7 +899,8 @@ requestAnimationFrame(frame);
    ========================================================= */
 const panel = $("panel");
 const closePanel = () => panel.classList.remove("open");
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closePanel(); });
+function openPanel(wide) { $("tip").style.display = "none"; panel.classList.toggle("wide", !!wide); panel.classList.add("open"); panel.scrollTop = 0; }
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closePanel(); setLegend(false); } });
 
 function agentDetail(id) {
   const ag = AGENTS.find((a) => a.id === id), d = agentData(id);
@@ -875,48 +918,56 @@ function agentDetail(id) {
 }
 function openAgent(id, anchor) {
   const ag = AGENTS.find((a) => a.id === id);
-  panel.innerHTML = `<div class="p-top"><span class="pill" style="--c:${ag.color}">Agent</span><button class="x" id="px">×</button></div>
-    <h2>${esc(ag.name)}</h2>${R ? agentDetail(id) : `<p class="muted">Load a report to see what this agent found.</p>`}`;
+  panel.innerHTML = `<div class="p-top"><span class="pill" style="--c:${ag.color}">Agent</span><button class="x" id="px" aria-label="Close">×</button></div>
+    <h2>${esc(fullName(ag))}</h2>${R ? agentDetail(id) : `<p class="muted">Load a report to see what this agent found.</p>`}`;
   $("px").onclick = closePanel;
-  panel.classList.add("open");
-  panel.scrollTop = 0;
+  openPanel(false);
   if (anchor) { const el = document.getElementById(anchor); if (el) { el.scrollIntoView({ block: "center" }); el.style.background = "rgba(255,255,255,.06)"; } }
 }
 function openCore() {
   if (!R) { openHelp(); return; }
   const h = R.headline;
-  panel.innerHTML = `<div class="p-top"><span class="pill">Jarvis</span><button class="x" id="px">×</button></div>
+  panel.innerHTML = `<div class="p-top"><span class="pill">Jarvis</span><button class="x" id="px" aria-label="Close">×</button></div>
     <h2>The one fix</h2>
     ${R.sample ? `<p class="banner">Sample report with made-up data</p>` : ""}
     <p style="margin-top:10px;font-size:1.05rem"><b>${esc(h.one_fix)}</b></p>
     <h3>Why</h3><p>${esc(h.why)}</p>
     <h3>This week</h3><p>${esc(h.this_week)}</p>
     ${R.latest_upload ? `<h3>Newest upload</h3><p><b>${esc(R.latest_upload.title)}</b></p><p class="muted">${esc(R.latest_upload.summary)}</p>` : ""}
-    <h3>Agents</h3>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(a.name)}</b><div class="d">${esc(d ? d.summary : "not in this report")}</div></div></div>`; }).join("")}`;
+    <h3>Agents</h3>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(fullName(a))}</b><div class="d">${esc(d ? d.summary : "not in this report")}</div></div></div>`; }).join("")}`;
   $("px").onclick = closePanel;
-  panel.classList.add("open");
+  openPanel(false);
 }
 function openHelp() {
-  panel.innerHTML = `<div class="p-top"><span class="pill">Help</span><button class="x" id="px">×</button></div>
+  panel.innerHTML = `<div class="p-top"><span class="pill">Help</span><button class="x" id="px" aria-label="Close">×</button></div>
     <h2>How Jarvis works</h2>
     <p class="muted">Claude Code runs your YouTube skills on your laptop. This page only shows the report. It has no API key and sends nothing anywhere.</p>
     <h3>Run a report</h3>
     <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Open a terminal in your <b>jarvis-reports</b> folder and start <b>claude</b>.</div></div>
     <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Type <b>/jarvis-report</b> and wait for it to finish.</div></div>
-    <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Click <b>Load report</b> here and choose <b>reports/latest.json</b>. You can also drag the file onto the page.</div></div>
+    <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Click the <b>upload</b> icon at the top right and choose <b>reports/latest.json</b>. You can also drag the file onto the page.</div></div>
     <h3>Privacy</h3>
     <p class="muted">The report stays in this browser. Jarvis remembers the last report and the connected folder on this device until you click Forget.</p>
     <h3>Every report in one place</h3>
-    <p class="muted">Click <b>Connect folder</b> and choose <b>jarvis-reports\\reports</b>. The page then opens the newest report on each visit and shows all past reports under History. Works in Edge and Chrome.</p>
+    <p class="muted">Click the <b>refresh</b> icon at the top right and choose <b>jarvis-reports\\reports</b>. The page then opens the newest report on each visit and shows all past reports under History. Works in Edge and Chrome.</p>
     <div class="row"><button class="btn ghost" id="hSample">View sample</button><button class="btn ghost" id="hForget">Forget report</button></div>
-    <h3>Other pages</h3>
-    <div class="row"><a class="btn ghost" style="text-decoration:none" href="agents.html">35 agent map (API key)</a><a class="btn ghost" style="text-decoration:none" href="../">Back to site</a></div>`;
+`;
   $("px").onclick = closePanel;
   $("hSample").onclick = () => { closePanel(); useReport(JSON.parse($("sample").textContent), false); };
   $("hForget").onclick = async () => { store.set("jarvis.report", null); await idbSet("dir", null); R = null; DIR = null; HIST = []; setFolderBtn("Connect folder"); buildMap(); renderAll(); closePanel(); toast("Report and folder removed from this browser."); };
-  panel.classList.add("open");
+  openPanel(false);
 }
 $("moreBtn").onclick = openHelp;
+function openDash() {
+  panel.innerHTML = `<div class="p-top"><span class="pill">Dashboard</span><button class="x" id="px" aria-label="Close">×</button></div><div id="dash"></div>`;
+  $("px").onclick = closePanel;
+  renderDash();
+  openPanel(true);
+}
+$("dashBtn").onclick = openDash;
+function setLegend(open) { $("legendPop").hidden = !open; $("infoBtn").setAttribute("aria-expanded", String(open)); }
+$("infoBtn").onclick = (e) => { e.stopPropagation(); setLegend($("legendPop").hidden); };
+document.addEventListener("click", (e) => { if (!e.target.closest("#legendWrap")) setLegend(false); });
 document.addEventListener("click", async (e) => {
   const b = e.target.closest("[data-copy]");
   if (!b) return;
@@ -926,21 +977,10 @@ document.addEventListener("click", async (e) => {
 /* =========================================================
    AGENTS VIEW (carousel)
    ========================================================= */
-function miniSvg(k) {
-  const g = GEO[k], rot = -90 - (g.a * 180) / Math.PI;
-  return `<svg viewBox="-210 -300 420 330"><g transform="rotate(${rot.toFixed(1)}) translate(${(-g.hub[0]).toFixed(1)},${(-g.hub[1]).toFixed(1)})">${agentSvg(k, g, false)}</g></svg>`;
-}
 function renderAgents() {
-  const f = focusIndex(), offs = innerWidth < 640 ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
-  const slots = offs.map((o) => { const k = (((f + o) % N) + N) % N; return `<div class="slot ${o === 0 ? "mid" : ""}" data-k="${k}">${miniSvg(k)}<div class="nm">${AGENTS[k].name.toUpperCase()}</div></div>`; }).join("");
-  const ag = AGENTS[f];
-  $("agents").innerHTML = `
-    <div class="carousel">${slots}</div>
-    <div class="car-ctrl"><button id="cL" aria-label="Previous">‹</button><button id="cR" aria-label="Next">›</button></div>
-    <div class="card"><h2 class="sec">${esc(ag.name.toUpperCase())}</h2>${R ? agentDetail(ag.id) : `<p class="muted">Load a report to see what /${ag.skill} found.</p>`}</div>`;
-  $("agents").querySelectorAll(".slot").forEach((s) => (s.onclick = () => rotateTo(+s.dataset.k)));
-  $("cL").onclick = () => rotateTo(f - 1);
-  $("cR").onclick = () => rotateTo(f + 1);
+  const ag = AGENTS[focusIndex()];
+  $("carName").textContent = ag.name.toUpperCase();
+  $("agentCard").innerHTML = `<h2 class="sec">${esc(fullName(ag))}</h2>${R ? agentDetail(ag.id) : `<p class="muted">Load a report to see what /${ag.skill} found.</p>`}`;
 }
 
 /* =========================================================
@@ -972,7 +1012,7 @@ function renderDash() {
       <div class="kpi"><b>${new Date(R.generated_at).toLocaleDateString()}</b><span>Report date</span></div>
     </div>
     <div class="grid2">
-      <div class="card"><h2 class="sec">Agents</h2>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row" style="cursor:pointer" data-open="${a.id}"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(a.name)}</b> <span class="muted">${d ? esc(d.status) + (d.score != null ? " · " + d.score : "") : "missing"}</span><div class="d">${esc(d ? d.summary : "")}</div></div></div>`; }).join("")}</div>
+      <div class="card"><h2 class="sec">Agents</h2>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row" style="cursor:pointer" data-open="${a.id}"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(fullName(a))}</b> <span class="muted">${d ? esc(d.status) + (d.score != null ? " · " + d.score : "") : "missing"}</span><div class="d">${esc(d ? d.summary : "")}</div></div></div>`; }).join("")}</div>
       <div class="card"><h2 class="sec">Do these, easiest first</h2>${recs.length ? recs.map((r) => `<div class="item-row"><i class="dot" style="--c:#e9e3ff"></i><div><b>${esc(r.action)}</b><div class="d">${esc(r.agent)} · ${esc(r.effort)} effort · ${esc(r.why)}</div></div></div>`).join("") : `<p class="muted">No recommendations.</p>`}</div>
     </div>
     ${R.videos.length ? `<div class="card"><h2 class="sec">Videos</h2><div class="tbl"><table>
@@ -1076,7 +1116,7 @@ function renderHist() {
       ${HIST.map((h) => { const r = h.report; const t = avgOf(r, "title_score"), k = avgOf(r, "hook_score");
         return `<tr data-date="${h.date}" style="cursor:pointer${h === cur ? ";background:rgba(255,255,255,.06)" : ""}"><td style="white-space:nowrap"><b>${h.date}</b></td><td>${esc(r.headline.one_fix)}${r.latest_upload ? `<div class="muted">Newest: ${esc(r.latest_upload.title)}</div>` : ""}</td>
         <td>${num(r.channel.subscribers)}</td><td><span class="score" style="background:${scoreColor(t)}">${t ?? "–"}</span></td><td><span class="score" style="background:${scoreColor(k)}">${k ?? "–"}</span></td>
-        <td style="white-space:nowrap">${AGENTS.map((a) => { const d = r.agents.find((x) => x.id === a.id); return `<i class="dot" title="${esc(a.name)}: ${d ? d.status : "missing"}" style="display:inline-block;margin:0 2px;--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i>`; }).join("")}</td></tr>`; }).join("")}
+        <td style="white-space:nowrap">${AGENTS.map((a) => { const d = r.agents.find((x) => x.id === a.id); return `<i class="dot" title="${esc(fullName(a))}: ${d ? d.status : "missing"}" style="display:inline-block;margin:0 2px;--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i>`; }).join("")}</td></tr>`; }).join("")}
     </table></div></div>`;
   el.querySelectorAll("tr[data-date]").forEach((tr) => (tr.onclick = () => { showReport(tr.dataset.date); renderHist(); }));
   el.querySelectorAll(".hchart").forEach((svgEl) => {
@@ -1105,19 +1145,21 @@ function renderHist() {
 let view = "map";
 document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => {
   view = b.dataset.v;
+  if (view === "agents") rotateTo(focusIndex());          // settle on one agent
   document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === "v-" + view));
   renderAll();
 }));
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 function renderAll() {
-  $("tagline").textContent = R ? `${R.channel.name} · ${R.agents.length} agents · ${new Date(R.generated_at).toLocaleDateString()}` : "No report loaded";
+  $("tagline").textContent = R ? fmtDate(R.generated_at) + (R.sample ? " · sample" : "") : "No report loaded";
+  $("legendWrap").hidden = view === "hist";
   if (view === "agents") renderAgents();
-  if (view === "dash") renderDash();
   if (view === "hist") renderHist();
+  if ($("dash") && panel.classList.contains("open")) renderDash();
 }
 let toastT;
 function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => (t.style.display = "none"), 3500); }
-addEventListener("resize", () => { if (view === "agents") renderAgents(); });
 
 try { const saved = JSON.parse(store.get("jarvis.report")); if (saved && !validate(saved)) R = saved; } catch {}
 buildMap();
