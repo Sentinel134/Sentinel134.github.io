@@ -687,7 +687,6 @@ function drawCore(g) {
   const x0 = W / 2, y0 = H / 2;
   const Rr = 82 * SCALE * (hoverCore ? 1.06 : 1);
   const breathe = 1 + 0.03 * Math.sin(clock * 1.4);          // the brain always moves
-  const alert = R && R.agents.some((a) => a.status === "alert");
   const halo = g.createRadialGradient(x0, y0, 0, x0, y0, Rr * 2.2);
   halo.addColorStop(0, "rgba(200,180,255,.38)"); halo.addColorStop(0.5, "rgba(130,100,240,.14)"); halo.addColorStop(1, "rgba(90,70,200,0)");
   g.fillStyle = halo; g.beginPath(); g.arc(x0, y0, Rr * 2.2, 0, 6.283); g.fill();
@@ -709,8 +708,6 @@ function drawCore(g) {
     g.fillStyle = `rgba(255,255,255,${(0.25 + 0.75 * z).toFixed(3)})`;
     g.beginPath(); g.arc(P[i][0], P[i][1], p.s * (0.6 + 0.6 * z) * Math.max(0.7, SCALE * 1.2), 0, 6.283); g.fill();
   });
-  g.strokeStyle = alert ? "rgba(255,143,143,.55)" : "rgba(255,255,255,.15)"; g.lineWidth = 1;
-  g.beginPath(); g.arc(x0, y0, Rr * 1.08, 0, 6.283); g.stroke();
   const fs = Math.max(11, 17 * SCALE);
   g.font = `600 ${Math.round(fs)}px Cinzel, serif`;
   if ("letterSpacing" in g) g.letterSpacing = `${(fs * 0.35).toFixed(1)}px`;
