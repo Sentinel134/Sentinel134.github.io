@@ -368,7 +368,7 @@ function geometry(k) {
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let theta = 0, GEO = [];                    // map rotation in degrees
 let NODES = [], LINKS = [], HUBS = [], BRANCHES = [], STARS = [], BRIGHT = [], GALAXY = [], CORE = [], CORE_PAIRS = [], PULSES = [], METEORS = [];
-let NEBULA = null, nextMeteor = 4, nextPulse = 0;
+let nextMeteor = 4, nextPulse = 0;
 let spin = REDUCED ? 0 : 3.2;               // degrees per second: one turn in about 2 minutes
 let spinVel = 0, target = null;
 let hover = null, hoverCore = false, grab = null, last = performance.now(), clock = 0;
@@ -388,7 +388,7 @@ function fit(S) {
   S.DPR = Math.min(2, devicePixelRatio || 1);
   S.W = rc.width; S.H = rc.height;
   S.cv.width = Math.round(S.W * S.DPR); S.cv.height = Math.round(S.H * S.DPR);
-  if (S === MAP) { W = S.W; H = S.H; SCALE = Math.min(W / 1280, (H - (W < 640 ? 230 : 150)) / 1200); paintNebula(); }   // room for the floating controls
+  if (S === MAP) { W = S.W; H = S.H; SCALE = Math.min(W / 1280, (H - (W < 640 ? 230 : 150)) / 1200); }   // room for the floating controls
 }
 function resize() { if (MAP.cv.clientWidth) fit(MAP); if (CAR_S.cv.clientWidth) fit(CAR_S); }
 addEventListener("resize", resize);
@@ -470,26 +470,6 @@ function buildMap() {
   updateFocus();
 }
 
-function paintNebula() {
-  const D = Math.ceil(Math.hypot(W, H) * 0.5) + 2;
-  NEBULA = document.createElement("canvas");
-  NEBULA.width = NEBULA.height = D;
-  const n = NEBULA.getContext("2d"), r = rng(23);
-  const CLOUDS = [["96,52,170", 0.22], ["40,70,170", 0.2], ["150,50,130", 0.16], ["60,40,140", 0.2], ["30,90,160", 0.13], ["120,70,200", 0.15], ["170,60,120", 0.1]];
-  n.globalCompositeOperation = "lighter";
-  for (let i = 0; i < 14; i++) {
-    const [rgb, a] = CLOUDS[i % CLOUDS.length];
-    const ang = r() * Math.PI * 2, dist = (0.08 + r() * 0.38) * D;
-    const x = D / 2 + Math.cos(ang) * dist, y = D / 2 + Math.sin(ang) * dist, rad0 = (0.18 + r() * 0.3) * D;
-    const grd = n.createRadialGradient(x, y, 0, x, y, rad0);
-    grd.addColorStop(0, `rgba(${rgb},${a})`); grd.addColorStop(0.5, `rgba(${rgb},${a * 0.4})`); grd.addColorStop(1, `rgba(${rgb},0)`);
-    n.fillStyle = grd; n.fillRect(0, 0, D, D);
-  }
-  const c = n.createRadialGradient(D / 2, D / 2, 0, D / 2, D / 2, D * 0.22);
-  c.addColorStop(0, "rgba(180,150,255,.28)"); c.addColorStop(0.4, "rgba(120,90,220,.12)"); c.addColorStop(1, "rgba(80,60,180,0)");
-  n.fillStyle = c; n.fillRect(0, 0, D, D);
-}
-
 /* ---------- physics: springs home, links like soft ropes ---------- */
 const K_HOME = 26, K_LINK = 140, DAMP = 7.5;
 function step(dt) {
@@ -523,7 +503,7 @@ function spawnPulse() {
   if (b) PULSES.push({ b, t: 0, speed: 0.35 + Math.random() * 0.25, rgb: hexRgb(b.hub.agent.color) });
 }
 function pulsePoint(p) {
-  const pts = [[p.b.hub.x * 0.5, p.b.hub.y * 0.5], ...p.b.chain.map((n) => [n.x, n.y])];
+  const pts = [[p.b.hub.x * 0.64, p.b.hub.y * 0.64], ...p.b.chain.map((n) => [n.x, n.y])];
   const segs = pts.length - 1, u = Math.min(p.t * segs, segs - 1e-6), i = Math.floor(u), f = u - i;
   return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f, i];
 }
@@ -532,11 +512,6 @@ function pulsePoint(p) {
 function drawBackground(g) {
   const a = rad();
   const SS = Math.max(0.55, Math.min(1.4, Math.min(W, H) / 900));
-  if (NEBULA) {
-    g.save(); g.translate(W / 2, H / 2); g.rotate(a * 0.25 + clock * 0.004);
-    const D = NEBULA.width * 2; g.globalAlpha = 0.95; g.drawImage(NEBULA, -D / 2, -D / 2, D, D);
-    g.restore(); g.globalAlpha = 1;
-  }
   const SC = Math.max(SCALE, 0.55);
   for (const s of STARS) {
     const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
@@ -679,7 +654,7 @@ function drawMap() {
   drawBackground(g);
   const t = mapT(), focus = focusIndex();
   g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
-  for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.55, h.y * 0.55), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.68, h.y * 0.68), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
   g.setLineDash([]);
   drawGraph(g, () => t, true, true);
   HUBS.forEach((h, k) => {
@@ -692,7 +667,7 @@ function drawMap() {
 
 function drawCore(g) {
   const x0 = W / 2, y0 = H / 2;
-  const Rr = 82 * SCALE * (hoverCore ? 1.06 : 1);
+  const Rr = 106 * SCALE * (hoverCore ? 1.06 : 1);
   const breathe = 1 + 0.03 * Math.sin(clock * 1.4);          // the brain always moves
   const halo = g.createRadialGradient(x0, y0, 0, x0, y0, Rr * 2.2);
   halo.addColorStop(0, "rgba(200,180,255,.38)"); halo.addColorStop(0.5, "rgba(130,100,240,.14)"); halo.addColorStop(1, "rgba(90,70,200,0)");
@@ -715,7 +690,7 @@ function drawCore(g) {
     g.fillStyle = `rgba(255,255,255,${(0.25 + 0.75 * z).toFixed(3)})`;
     g.beginPath(); g.arc(P[i][0], P[i][1], p.s * (0.6 + 0.6 * z) * Math.max(0.7, SCALE * 1.2), 0, 6.283); g.fill();
   });
-  const fs = Math.max(11, 17 * SCALE);
+  const fs = Math.max(14, 23 * SCALE);
   g.font = `600 ${Math.round(fs)}px Cinzel, serif`;
   if ("letterSpacing" in g) g.letterSpacing = `${(fs * 0.35).toFixed(1)}px`;
   g.textAlign = "center"; g.textBaseline = "middle";
@@ -821,7 +796,7 @@ function pickNode(S, px, py) {
   }
   return best;
 }
-const inCore = (px, py) => Math.hypot(px - W / 2, py - H / 2) < 90 * SCALE;
+const inCore = (px, py) => Math.hypot(px - W / 2, py - H / 2) < 116 * SCALE;
 
 function bindSurface(S) {
   const cv = S.cv;
@@ -1166,7 +1141,7 @@ function showView(v, k) {
   renderAll();
 }
 document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showView(b.dataset.v)));
-const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 function renderAll() {
   $("tagline").textContent = R ? fmtDate(R.generated_at) + (R.sample ? " · sample" : "") : "No report loaded";
   $("legendWrap").hidden = view === "hist";
