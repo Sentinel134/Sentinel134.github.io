@@ -30,6 +30,7 @@ header { display: flex; align-items: center; justify-content: space-between; fle
 #map-wrap { position: relative; height: 100vh; height: 100dvh; min-height: 480px; }
 .topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; pointer-events: none; }
 .topbar > * { pointer-events: auto; }
+body.paged .topbar { background: linear-gradient(rgba(7,8,24,.96) 62%, rgba(7,8,24,0)); padding-bottom: 26px; }
 .topbar .seg { background: rgba(10,10,32,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); }
 .date { font-family: 'Cinzel', serif; font-size: .95rem; letter-spacing: .12em; color: var(--ink); text-shadow: 0 1px 8px rgba(0,0,0,.6); min-width: 0; }
 .icons { display: flex; gap: 8px; }
@@ -117,6 +118,9 @@ td a { color: var(--ink); }
 #panel.wide { width: min(1120px, calc(100vw - 32px)); max-height: 86vh; }
 #panel .p-top { position: sticky; top: 0; z-index: 2; margin: 0 -20px; padding: 14px 20px 10px; background: linear-gradient(rgba(18,19,48,.98) 70%, rgba(18,19,48,0)); }
 #panel h2 { font-family: 'Cinzel', serif; letter-spacing: .08em; font-size: 1.3rem; margin: 8px 0 4px; }
+#agentCard, #agentCard .item-row { scroll-margin-top: 90px; }
+.flash { animation: flash 2.2s ease-out; border-radius: 8px; }
+@keyframes flash { 0% { background: rgba(201,184,255,.32); box-shadow: 0 0 0 2px rgba(201,184,255,.55); } 100% { background: transparent; box-shadow: 0 0 0 2px rgba(201,184,255,0); } }
 #panel h3, #agentCard h3 { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; font-weight: 500; }
 .p-top { display: flex; justify-content: space-between; align-items: center; }
 .x { background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1.2rem; line-height: 1; color: var(--ink); }
@@ -364,7 +368,7 @@ function geometry(k) {
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let theta = 0, GEO = [];                    // map rotation in degrees
 let NODES = [], LINKS = [], HUBS = [], BRANCHES = [], STARS = [], BRIGHT = [], GALAXY = [], CORE = [], CORE_PAIRS = [], PULSES = [], METEORS = [];
-let NEBULA = null, nextMeteor = 4, nextPulse = 0;
+let nextMeteor = 4, nextPulse = 0;
 let spin = REDUCED ? 0 : 3.2;               // degrees per second: one turn in about 2 minutes
 let spinVel = 0, target = null;
 let hover = null, hoverCore = false, grab = null, last = performance.now(), clock = 0;
@@ -384,7 +388,7 @@ function fit(S) {
   S.DPR = Math.min(2, devicePixelRatio || 1);
   S.W = rc.width; S.H = rc.height;
   S.cv.width = Math.round(S.W * S.DPR); S.cv.height = Math.round(S.H * S.DPR);
-  if (S === MAP) { W = S.W; H = S.H; SCALE = Math.min(W / 1280, (H - (W < 640 ? 230 : 150)) / 1200); paintNebula(); }   // room for the floating controls
+  if (S === MAP) { W = S.W; H = S.H; SCALE = Math.min(W / 1280, (H - (W < 640 ? 230 : 150)) / 1200); }   // room for the floating controls
 }
 function resize() { if (MAP.cv.clientWidth) fit(MAP); if (CAR_S.cv.clientWidth) fit(CAR_S); }
 addEventListener("resize", resize);
@@ -466,26 +470,6 @@ function buildMap() {
   updateFocus();
 }
 
-function paintNebula() {
-  const D = Math.ceil(Math.hypot(W, H) * 0.5) + 2;
-  NEBULA = document.createElement("canvas");
-  NEBULA.width = NEBULA.height = D;
-  const n = NEBULA.getContext("2d"), r = rng(23);
-  const CLOUDS = [["96,52,170", 0.22], ["40,70,170", 0.2], ["150,50,130", 0.16], ["60,40,140", 0.2], ["30,90,160", 0.13], ["120,70,200", 0.15], ["170,60,120", 0.1]];
-  n.globalCompositeOperation = "lighter";
-  for (let i = 0; i < 14; i++) {
-    const [rgb, a] = CLOUDS[i % CLOUDS.length];
-    const ang = r() * Math.PI * 2, dist = (0.08 + r() * 0.38) * D;
-    const x = D / 2 + Math.cos(ang) * dist, y = D / 2 + Math.sin(ang) * dist, rad0 = (0.18 + r() * 0.3) * D;
-    const grd = n.createRadialGradient(x, y, 0, x, y, rad0);
-    grd.addColorStop(0, `rgba(${rgb},${a})`); grd.addColorStop(0.5, `rgba(${rgb},${a * 0.4})`); grd.addColorStop(1, `rgba(${rgb},0)`);
-    n.fillStyle = grd; n.fillRect(0, 0, D, D);
-  }
-  const c = n.createRadialGradient(D / 2, D / 2, 0, D / 2, D / 2, D * 0.22);
-  c.addColorStop(0, "rgba(180,150,255,.28)"); c.addColorStop(0.4, "rgba(120,90,220,.12)"); c.addColorStop(1, "rgba(80,60,180,0)");
-  n.fillStyle = c; n.fillRect(0, 0, D, D);
-}
-
 /* ---------- physics: springs home, links like soft ropes ---------- */
 const K_HOME = 26, K_LINK = 140, DAMP = 7.5;
 function step(dt) {
@@ -519,7 +503,7 @@ function spawnPulse() {
   if (b) PULSES.push({ b, t: 0, speed: 0.35 + Math.random() * 0.25, rgb: hexRgb(b.hub.agent.color) });
 }
 function pulsePoint(p) {
-  const pts = [[p.b.hub.x * 0.5, p.b.hub.y * 0.5], ...p.b.chain.map((n) => [n.x, n.y])];
+  const pts = [[p.b.hub.x * 0.64, p.b.hub.y * 0.64], ...p.b.chain.map((n) => [n.x, n.y])];
   const segs = pts.length - 1, u = Math.min(p.t * segs, segs - 1e-6), i = Math.floor(u), f = u - i;
   return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f, i];
 }
@@ -528,11 +512,6 @@ function pulsePoint(p) {
 function drawBackground(g) {
   const a = rad();
   const SS = Math.max(0.55, Math.min(1.4, Math.min(W, H) / 900));
-  if (NEBULA) {
-    g.save(); g.translate(W / 2, H / 2); g.rotate(a * 0.25 + clock * 0.004);
-    const D = NEBULA.width * 2; g.globalAlpha = 0.95; g.drawImage(NEBULA, -D / 2, -D / 2, D, D);
-    g.restore(); g.globalAlpha = 1;
-  }
   const SC = Math.max(SCALE, 0.55);
   for (const s of STARS) {
     const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
@@ -675,7 +654,7 @@ function drawMap() {
   drawBackground(g);
   const t = mapT(), focus = focusIndex();
   g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
-  for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.55, h.y * 0.55), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+  for (const h of HUBS) { const [x1, y1] = toS(t, h.x * 0.68, h.y * 0.68), [x2, y2] = toS(t, h.x, h.y); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
   g.setLineDash([]);
   drawGraph(g, () => t, true, true);
   HUBS.forEach((h, k) => {
@@ -688,7 +667,7 @@ function drawMap() {
 
 function drawCore(g) {
   const x0 = W / 2, y0 = H / 2;
-  const Rr = 82 * SCALE * (hoverCore ? 1.06 : 1);
+  const Rr = 106 * SCALE * (hoverCore ? 1.06 : 1);
   const breathe = 1 + 0.03 * Math.sin(clock * 1.4);          // the brain always moves
   const halo = g.createRadialGradient(x0, y0, 0, x0, y0, Rr * 2.2);
   halo.addColorStop(0, "rgba(200,180,255,.38)"); halo.addColorStop(0.5, "rgba(130,100,240,.14)"); halo.addColorStop(1, "rgba(90,70,200,0)");
@@ -711,7 +690,7 @@ function drawCore(g) {
     g.fillStyle = `rgba(255,255,255,${(0.25 + 0.75 * z).toFixed(3)})`;
     g.beginPath(); g.arc(P[i][0], P[i][1], p.s * (0.6 + 0.6 * z) * Math.max(0.7, SCALE * 1.2), 0, 6.283); g.fill();
   });
-  const fs = Math.max(11, 17 * SCALE);
+  const fs = Math.max(14, 23 * SCALE);
   g.font = `600 ${Math.round(fs)}px Cinzel, serif`;
   if ("letterSpacing" in g) g.letterSpacing = `${(fs * 0.35).toFixed(1)}px`;
   g.textAlign = "center"; g.textBaseline = "middle";
@@ -817,7 +796,7 @@ function pickNode(S, px, py) {
   }
   return best;
 }
-const inCore = (px, py) => Math.hypot(px - W / 2, py - H / 2) < 90 * SCALE;
+const inCore = (px, py) => Math.hypot(px - W / 2, py - H / 2) < 116 * SCALE;
 
 function bindSurface(S) {
   const cv = S.cv;
@@ -872,9 +851,7 @@ function bindSurface(S) {
     }
     if (g.moved) return;                    // a dragged node springs home on its own
     const n = g.node;
-    if (S === CAR_S && n.k !== focusIndex()) { rotateTo(n.k); return; }
-    if (n.kind === "item") openAgent(n.agent.id, `${n.item.kind}-${n.item.i}`);
-    else openAgent(n.agent.id);
+    goToAgent(n.k, n.kind === "item" ? `${n.item.kind}-${n.item.i}` : null);
   };
   cv.addEventListener("pointerup", release);
   cv.addEventListener("pointercancel", release);
@@ -916,13 +893,23 @@ function agentDetail(id) {
     ${d.copy_block ? `<h3>Copy block</h3><pre>${esc(d.copy_block)}</pre><button class="btn ghost small" data-copy="${esc(d.copy_block)}" style="margin-top:6px">Copy</button>` : ""}
     ${d.missing_inputs.length ? `<h3>Missing inputs</h3>${list(d.missing_inputs, (m) => `<div class="item-row"><i class="dot" style="--c:var(--warn)"></i><div class="d">${esc(m)}</div></div>`)}` : ""}`;
 }
-function openAgent(id, anchor) {
-  const ag = AGENTS.find((a) => a.id === id);
-  panel.innerHTML = `<div class="p-top"><span class="pill" style="--c:${ag.color}">Agent</span><button class="x" id="px" aria-label="Close">×</button></div>
-    <h2>${esc(fullName(ag))}</h2>${R ? agentDetail(id) : `<p class="muted">Load a report to see what this agent found.</p>`}`;
-  $("px").onclick = closePanel;
-  openPanel(false);
-  if (anchor) { const el = document.getElementById(anchor); if (el) { el.scrollIntoView({ block: "center" }); el.style.background = "rgba(255,255,255,.06)"; } }
+// Jump to the agent in the Agents tab, slide the carousel to it, and scroll to the
+// finding, recommendation or strength that was clicked.
+let pendingJump = null;
+function goToAgent(k, anchor) {
+  closePanel();
+  pendingJump = { k, anchor };
+  if (view !== "agents") showView("agents", k);       // the card renders and applies the jump
+  else { rotateTo(k); applyJump(); }                  // same agent: scroll now; another: once it arrives
+}
+function applyJump() {
+  if (!pendingJump || pendingJump.k !== focusIndex()) return;
+  const el = (pendingJump.anchor && document.getElementById(pendingJump.anchor)) || $("agentCard");
+  pendingJump = null;
+  requestAnimationFrame(() => {
+    el.scrollIntoView({ behavior: REDUCED ? "auto" : "smooth", block: el.id === "agentCard" ? "start" : "center" });
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  });
 }
 function openCore() {
   if (!R) { openHelp(); return; }
@@ -981,6 +968,7 @@ function renderAgents() {
   const ag = AGENTS[focusIndex()];
   $("carName").textContent = ag.name.toUpperCase();
   $("agentCard").innerHTML = `<h2 class="sec">${esc(fullName(ag))}</h2>${R ? agentDetail(ag.id) : `<p class="muted">Load a report to see what /${ag.skill} found.</p>`}`;
+  applyJump();
 }
 
 /* =========================================================
@@ -1021,7 +1009,7 @@ function renderDash() {
         <td><span class="score" style="background:${scoreColor(v.title_score)}">${v.title_score ?? "–"}</span></td><td><span class="score" style="background:${scoreColor(v.hook_score)}">${v.hook_score ?? "–"}</span></td></tr>`).join("")}
     </table></div></div>` : ""}
     ${missing.length ? `<div class="card"><h2 class="sec">Add these for a better report</h2>${missing.map((x) => `<div class="item-row"><i class="dot" style="--c:var(--warn)"></i><div><b>${esc(x.agent)}</b><div class="d">${esc(x.m)}</div></div></div>`).join("")}</div>` : ""}`;
-  $("dash").querySelectorAll("[data-open]").forEach((el) => (el.onclick = () => openAgent(el.dataset.open)));
+  $("dash").querySelectorAll("[data-open]").forEach((el) => (el.onclick = () => goToAgent(AGENTS.findIndex((a) => a.id === el.dataset.open), null)));
 }
 const num = (v) => (v == null ? "n/a" : v.toLocaleString());
 function latestCard(u) {
@@ -1143,14 +1131,17 @@ function renderHist() {
    SHARED
    ========================================================= */
 let view = "map";
-document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => {
-  view = b.dataset.v;
-  if (view === "agents") rotateTo(focusIndex());          // settle on one agent
-  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x === b));
-  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("on", v.id === "v-" + view));
+function showView(v, k) {
+  view = v;
+  document.body.classList.toggle("paged", v !== "map");
+  if (view === "agents") rotateTo(k ?? focusIndex());      // settle on one agent
+  document.querySelectorAll("#tabs button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+  document.querySelectorAll(".view").forEach((el) => el.classList.toggle("on", el.id === "v-" + view));
+  if (view !== "map") scrollTo({ top: 0 });
   renderAll();
-}));
-const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+}
+document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showView(b.dataset.v)));
+const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" });
 function renderAll() {
   $("tagline").textContent = R ? fmtDate(R.generated_at) + (R.sample ? " · sample" : "") : "No report loaded";
   $("legendWrap").hidden = view === "hist";
