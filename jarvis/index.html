@@ -65,6 +65,7 @@ header { display: flex; align-items: center; justify-content: space-between; fle
 .car-ctrl { display: flex; justify-content: center; gap: 14px; margin: 10px 0 18px; }
 .car-ctrl button { background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; }
 .card { background: rgba(20,22,50,.55); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: 12px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
 h2.sec { font-family: 'Cinzel', serif; letter-spacing: .12em; font-size: 1rem; margin: 6px 0 10px; }
 .pill { display: inline-block; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; border: 1px solid var(--c, var(--accent)); color: var(--c, var(--accent)); border-radius: 99px; padding: 2px 10px; margin-right: 6px; }
@@ -113,9 +114,11 @@ td a { color: var(--ink); }
     <button data-v="map" class="on">Map</button>
     <button data-v="agents">Agents</button>
     <button data-v="dash">Dashboard</button>
+    <button data-v="hist">History</button>
   </div>
   <div class="hright">
-    <button class="hbtn main" id="loadBtn">Load report</button>
+    <button class="hbtn main" id="folderBtn" hidden>Connect folder</button>
+    <button class="hbtn" id="loadBtn">Load report</button>
     <button class="hbtn" id="moreBtn">Help</button>
   </div>
   <input type="file" id="file" accept=".json,application/json" hidden>
@@ -139,6 +142,7 @@ td a { color: var(--ink); }
 </section>
 <section class="view" id="v-agents"><div class="wrap" id="agents"></div></section>
 <section class="view" id="v-dash"><div class="wrap" id="dash"></div></section>
+<section class="view" id="v-hist"><div class="wrap" id="hist"></div></section>
 
 <aside id="panel"></aside>
 <div id="tip"></div>
@@ -180,21 +184,83 @@ function validate(r) {
   if (!Array.isArray(r.agents) || !r.channel || !r.headline) return "The report is missing channel, headline or agents.";
   return null;
 }
-function useReport(r, remember) {
+function useReport(r, remember, fromFolder) {
   const err = validate(r);
   if (err) { toast(err); return; }
   r.videos = r.videos || [];
   R = r;
+  if (!fromFolder) { HIST = []; }
   if (remember) store.set("jarvis.report", JSON.stringify(r));
   buildMap();
   renderAll();
-  toast(r.sample ? "Showing the sample report with made-up data." : `Loaded report for ${r.channel.name}.`);
+  if (!fromFolder) toast(r.sample ? "Showing the sample report with made-up data." : `Loaded report for ${r.channel.name}.`);
 }
 function readFile(f) {
   const fr = new FileReader();
   fr.onload = () => { try { useReport(JSON.parse(fr.result), true); } catch { toast("That file is not valid JSON."); } };
   fr.readAsText(f);
 }
+
+/* ---------- reports folder (Edge and Chrome) ---------- */
+let HIST = [];             // [{ date, report }] newest first, from the connected folder
+let DIR = null;            // the connected folder handle
+const canFolder = "showDirectoryPicker" in window;
+function idb() {
+  return new Promise((res, rej) => {
+    const q = indexedDB.open("jarvis", 1);
+    q.onupgradeneeded = () => q.result.createObjectStore("kv");
+    q.onsuccess = () => res(q.result);
+    q.onerror = () => rej(q.error);
+  });
+}
+async function idbGet(k) {
+  try { const db = await idb(); return await new Promise((r) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch { return null; }
+}
+async function idbSet(k, v) {
+  try { const db = await idb(); await new Promise((r) => { const t = db.transaction("kv", "readwrite"); const s = t.objectStore("kv"); v === null ? s.delete(k) : s.put(v, k); t.oncomplete = r; t.onerror = r; }); } catch {}
+}
+async function loadFolder(dir, quiet) {
+  const found = [];
+  for await (const [name, h] of dir.entries()) {
+    if (h.kind !== "file" || !/^\d{4}-\d{2}-\d{2}\.json$/.test(name)) continue;
+    try {
+      const r = JSON.parse(await (await h.getFile()).text());
+      if (!validate(r) && !r.sample) found.push({ date: name.slice(0, 10), report: r });
+    } catch {}
+  }
+  if (!found.length) {
+    try { return await loadFolder(await dir.getDirectoryHandle("reports"), quiet); } catch {}
+    toast("No reports found there. Choose the reports folder inside jarvis-reports.");
+    return null;
+  }
+  found.sort((a, b) => b.date.localeCompare(a.date));
+  HIST = found;
+  DIR = dir;
+  useReport(found[0].report, false, true);
+  setFolderBtn("Refresh");
+  if (!quiet) toast(`Loaded ${found.length} report${found.length > 1 ? "s" : ""}. Newest: ${found[0].date}.`);
+  return dir;
+}
+function setFolderBtn(label) { const b = $("folderBtn"); b.hidden = !canFolder; b.textContent = label; }
+async function folderClick() {
+  try {
+    if (DIR) { await loadFolder(DIR); return; }
+    const saved = await idbGet("dir");
+    if (saved && (await saved.requestPermission({ mode: "read" })) === "granted") { await loadFolder(saved); return; }
+    const dir = await window.showDirectoryPicker({ id: "jarvis-reports", mode: "read" });
+    const used = await loadFolder(dir);
+    if (used) await idbSet("dir", used);
+  } catch (e) {
+    if (e && e.name !== "AbortError") toast("Could not open that folder.");
+  }
+}
+function showReport(date) {
+  const h = HIST.find((x) => x.date === date);
+  if (!h) return;
+  useReport(h.report, false, true);
+  toast(`Showing the report from ${date}.`);
+}
+$("folderBtn").onclick = folderClick;
 const pick = () => $("file").click();
 $("loadBtn").onclick = pick;
 $("emptyLoad").onclick = pick;
@@ -393,6 +459,7 @@ function openCore() {
     <p style="margin-top:10px;font-size:1.05rem"><b>${esc(h.one_fix)}</b></p>
     <h3>Why</h3><p>${esc(h.why)}</p>
     <h3>This week</h3><p>${esc(h.this_week)}</p>
+    ${R.latest_upload ? `<h3>Newest upload</h3><p><b>${esc(R.latest_upload.title)}</b></p><p class="muted">${esc(R.latest_upload.summary)}</p>` : ""}
     <h3>Agents</h3>${AGENTS.map((a) => { const d = agentData(a.id); return `<div class="item-row"><i class="dot" style="--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i><div><b>${esc(a.name)}</b><div class="d">${esc(d ? d.summary : "not in this report")}</div></div></div>`; }).join("")}`;
   $("px").onclick = closePanel;
   panel.classList.add("open");
@@ -406,13 +473,15 @@ function openHelp() {
     <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Type <b>/jarvis-report</b> and wait for it to finish.</div></div>
     <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Click <b>Load report</b> here and choose <b>reports/latest.json</b>. You can also drag the file onto the page.</div></div>
     <h3>Privacy</h3>
-    <p class="muted">The report stays in this browser. Jarvis remembers the last report on this device until you click Forget.</p>
+    <p class="muted">The report stays in this browser. Jarvis remembers the last report and the connected folder on this device until you click Forget.</p>
+    <h3>Every report in one place</h3>
+    <p class="muted">Click <b>Connect folder</b> and choose <b>jarvis-reports\\reports</b>. The page then opens the newest report on each visit and shows all past reports under History. Works in Edge and Chrome.</p>
     <div class="row"><button class="btn ghost" id="hSample">View sample</button><button class="btn ghost" id="hForget">Forget report</button></div>
     <h3>Other pages</h3>
     <div class="row"><a class="btn ghost" style="text-decoration:none" href="agents.html">35 agent map (API key)</a><a class="btn ghost" style="text-decoration:none" href="../">Back to site</a></div>`;
   $("px").onclick = closePanel;
   $("hSample").onclick = () => { closePanel(); useReport(JSON.parse($("sample").textContent), false); };
-  $("hForget").onclick = () => { store.set("jarvis.report", null); R = null; buildMap(); renderAll(); closePanel(); toast("Report removed from this browser."); };
+  $("hForget").onclick = async () => { store.set("jarvis.report", null); await idbSet("dir", null); R = null; DIR = null; HIST = []; setFolderBtn("Connect folder"); buildMap(); renderAll(); closePanel(); toast("Report and folder removed from this browser."); };
   panel.classList.add("open");
 }
 $("moreBtn").onclick = openHelp;
@@ -461,6 +530,7 @@ function renderDash() {
   $("dash").innerHTML = `
     ${R.sample ? `<p class="banner" style="margin-bottom:12px">Sample report with made-up data. Load your own report to see your channel.</p>` : ""}
     <div class="card"><h2 class="sec">The one fix</h2><p style="font-size:1.05rem"><b>${esc(R.headline.one_fix)}</b></p><p class="muted" style="margin-top:6px">${esc(R.headline.this_week)}</p></div>
+    ${R.latest_upload || R.since_last ? `<div class="grid2">${latestCard(R.latest_upload)}${sinceCard(R.since_last)}</div>` : ""}
     <div class="kpis">
       <div class="kpi"><b>${c.subscribers != null ? c.subscribers.toLocaleString() : "n/a"}</b><span>Subscribers</span></div>
       <div class="kpi"><b>${c.videos_analyzed}</b><span>Videos analyzed</span></div>
@@ -481,6 +551,121 @@ function renderDash() {
     ${missing.length ? `<div class="card"><h2 class="sec">Add these for a better report</h2>${missing.map((x) => `<div class="item-row"><i class="dot" style="--c:var(--warn)"></i><div><b>${esc(x.agent)}</b><div class="d">${esc(x.m)}</div></div></div>`).join("")}</div>` : ""}`;
   $("dash").querySelectorAll("[data-open]").forEach((el) => (el.onclick = () => openAgent(el.dataset.open)));
 }
+const num = (v) => (v == null ? "n/a" : v.toLocaleString());
+function latestCard(u) {
+  if (!u) return `<div class="card"><h2 class="sec">Newest upload</h2><p class="muted">No video was published in the 36 hours before this report.</p></div>`;
+  return `<div class="card"><h2 class="sec">Newest upload</h2>
+    <p><a href="${esc(u.url)}" target="_blank" rel="noopener" style="color:var(--ink)"><b>${esc(u.title)}</b></a></p>
+    <p class="muted">${esc(u.published || "")}${u.hours_live != null ? ` · live ${u.hours_live} h` : ""}</p>
+    <p class="row" style="margin:8px 0">
+      <span class="pill">${num(u.views)} views</span><span class="pill">${num(u.likes)} likes</span><span class="pill">${num(u.comments)} comments</span>
+      <span class="score" style="background:${scoreColor(u.title_score)}">title ${u.title_score ?? "–"}</span>
+      <span class="score" style="background:${scoreColor(u.hook_score)}">hook ${u.hook_score ?? "–"}</span>
+      ${u.vs_channel_median != null ? `<span class="pill">${u.vs_channel_median}x channel median</span>` : ""}
+    </p>
+    <p>${esc(u.summary)}</p>
+    ${u.fixes && u.fixes.length ? u.fixes.map((f) => `<div class="item-row"><i class="dot" style="--c:#e9e3ff"></i><div>${esc(f)} <button class="btn ghost small" data-copy="${esc(f)}">Copy</button></div></div>`).join("") : ""}
+  </div>`;
+}
+function sinceCard(s) {
+  if (!s) return `<div class="card"><h2 class="sec">Since last report</h2><p class="muted">This is the first report, so there is nothing to compare yet.</p></div>`;
+  const doneColor = { yes: "var(--ok)", partly: "var(--warn)", no: "var(--alert)", unclear: "var(--skip)" }[s.last_fix_done] || "var(--skip)";
+  const sub = s.subscribers_change == null ? "n/a" : (s.subscribers_change > 0 ? "+" : "") + s.subscribers_change;
+  return `<div class="card"><h2 class="sec">Since last report</h2>
+    <p class="muted">Compared with ${esc(s.previous_report)}</p>
+    <p class="row" style="margin:8px 0"><span class="pill">${sub} subscribers</span><span class="pill">${num(s.new_videos)} new videos</span></p>
+    ${s.last_fix ? `<div class="item-row"><i class="dot" style="--c:${doneColor}"></i><div><b>Last fix: ${esc(s.last_fix_done || "unclear")}</b><div class="d">${esc(s.last_fix)}</div></div></div>` : ""}
+    ${s.notes.map((n) => `<div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div class="d">${esc(n)}</div></div>`).join("")}
+  </div>`;
+}
+
+/* =========================================================
+   HISTORY
+   ========================================================= */
+const LINE = "#8b78f0";
+const avgOf = (r, k) => { const v = (r.videos || []).map((x) => x[k]).filter((x) => Number.isInteger(x)); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null; };
+function chart(id, title, pts, opts = {}) {
+  const W = 560, H = 200, L = 48, RP = 14, T = 12, B = 28;
+  const vals = pts.map((p) => p.v).filter((v) => v != null);
+  if (!vals.length) return `<div class="card"><h2 class="sec">${title}</h2><p class="muted">No data yet.</p></div>`;
+  let lo, hi;
+  if (opts.range) [lo, hi] = opts.range;
+  else { lo = Math.min(...vals); hi = Math.max(...vals); const pad = (hi - lo) * 0.2 || Math.max(2, Math.abs(hi) * 0.1); lo = Math.max(0, Math.floor(lo - pad)); hi = Math.ceil(hi + pad); }
+  const x = (i) => (pts.length === 1 ? (L + W - RP) / 2 : L + (i / (pts.length - 1)) * (W - L - RP));
+  const y = (v) => T + (1 - (v - lo) / (hi - lo || 1)) * (H - T - B);
+  const ticks = [lo, Math.round((lo + hi) / 2), hi];
+  let g = ticks.map((t) => `<line x1="${L}" x2="${W - RP}" y1="${y(t)}" y2="${y(t)}" stroke="rgba(255,255,255,.08)"/><text x="${L - 8}" y="${y(t) + 4}" text-anchor="end" font-size="14" fill="var(--muted)">${t.toLocaleString()}</text>`).join("");
+  if (opts.target != null) g += `<line x1="${L}" x2="${W - RP}" y1="${y(opts.target)}" y2="${y(opts.target)}" stroke="rgba(255,255,255,.3)" stroke-dasharray="4 4"/><text x="${W - RP}" y="${y(opts.target) + 17}" text-anchor="end" font-size="14" fill="var(--muted)">target ${opts.target}</text>`;
+  const idx = pts.length > 2 ? [0, Math.floor((pts.length - 1) / 2), pts.length - 1] : pts.map((_, i) => i);
+  g += [...new Set(idx)].map((i) => `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="14" fill="var(--muted)">${pts[i].date.slice(5)}</text>`).join("");
+  let path = "", open = false;
+  pts.forEach((p, i) => { if (p.v == null) { open = false; return; } path += `${open ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)} `; open = true; });
+  const dots = pts.map((p, i) => p.v == null ? "" : `<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="4" fill="${LINE}" stroke="#1f2246" stroke-width="2"/>`).join("");
+  const last = [...pts].reverse().find((p) => p.v != null);
+  return `<div class="card"><h2 class="sec">${title}</h2>
+    <p class="muted" style="margin:-4px 0 6px">Latest: <b style="color:var(--ink)">${last.v.toLocaleString()}</b> on ${last.date}</p>
+    <svg class="hchart" data-id="${id}" viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;touch-action:pan-y">
+      ${g}<path d="${path}" fill="none" stroke="${LINE}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${dots}
+      <line class="xh" x1="0" x2="0" y1="${T}" y2="${H - B}" stroke="rgba(255,255,255,.35)" visibility="hidden"/>
+      <rect x="${L}" y="0" width="${W - L - RP}" height="${H}" fill="transparent"/>
+    </svg></div>`;
+}
+const CHARTS = {};
+function renderHist() {
+  const el = $("hist");
+  if (!HIST.length) {
+    el.innerHTML = `<div class="card"><h2 class="sec">History</h2>
+      ${canFolder ? `<p>Connect your <b>reports</b> folder once, and this page shows every report you have run, with charts.</p>
+        <p class="muted" style="margin-top:6px">Choose <b>C:\\Users\\becen\\jarvis-reports\\reports</b>. The files stay on your laptop.</p>
+        <div class="row"><button class="btn" id="hConnect">Connect folder</button></div>`
+      : `<p class="muted">History needs Edge or Chrome on a computer, because it reads your reports folder directly. This browser can still load one report at a time.</p>`}</div>`;
+    const b = $("hConnect"); if (b) b.onclick = folderClick;
+    return;
+  }
+  const asc = [...HIST].reverse();
+  const series = {
+    subs: asc.map((h) => ({ date: h.date, v: h.report.channel.subscribers ?? null })),
+    title: asc.map((h) => ({ date: h.date, v: avgOf(h.report, "title_score") })),
+    hook: asc.map((h) => ({ date: h.date, v: avgOf(h.report, "hook_score") })),
+    latest: asc.map((h) => ({ date: h.date, v: h.report.latest_upload ? h.report.latest_upload.views ?? null : null })),
+  };
+  Object.assign(CHARTS, series);
+  const cur = R ? HIST.find((h) => h.report === R) : null;
+  el.innerHTML = `
+    <p class="muted" style="margin-bottom:12px">${HIST.length} report${HIST.length > 1 ? "s" : ""} from ${HIST[HIST.length - 1].date} to ${HIST[0].date}. Click a row to open that day's report.</p>
+    <div class="charts">
+      ${chart("subs", "Subscribers", series.subs)}
+      ${chart("latest", "Newest upload views at report time", series.latest)}
+      ${chart("title", "Average title score", series.title, { range: [0, 100], target: 72 })}
+      ${chart("hook", "Average hook score", series.hook, { range: [0, 100], target: 55 })}
+    </div>
+    <div class="card"><h2 class="sec">All reports</h2><div class="tbl"><table>
+      <tr><th>Date</th><th>One fix</th><th>Subs</th><th>Title</th><th>Hook</th><th>Agents</th></tr>
+      ${HIST.map((h) => { const r = h.report; const t = avgOf(r, "title_score"), k = avgOf(r, "hook_score");
+        return `<tr data-date="${h.date}" style="cursor:pointer${h === cur ? ";background:rgba(255,255,255,.06)" : ""}"><td style="white-space:nowrap"><b>${h.date}</b></td><td>${esc(r.headline.one_fix)}${r.latest_upload ? `<div class="muted">Newest: ${esc(r.latest_upload.title)}</div>` : ""}</td>
+        <td>${num(r.channel.subscribers)}</td><td><span class="score" style="background:${scoreColor(t)}">${t ?? "–"}</span></td><td><span class="score" style="background:${scoreColor(k)}">${k ?? "–"}</span></td>
+        <td style="white-space:nowrap">${AGENTS.map((a) => { const d = r.agents.find((x) => x.id === a.id); return `<i class="dot" title="${esc(a.name)}: ${d ? d.status : "missing"}" style="display:inline-block;margin:0 2px;--c:${d ? STATUS_COLOR[d.status] : "var(--skip)"}"></i>`; }).join("")}</td></tr>`; }).join("")}
+    </table></div></div>`;
+  el.querySelectorAll("tr[data-date]").forEach((tr) => (tr.onclick = () => { showReport(tr.dataset.date); renderHist(); }));
+  el.querySelectorAll(".hchart").forEach((svgEl) => {
+    const pts = CHARTS[svgEl.dataset.id];
+    const vb = svgEl.viewBox.baseVal, L = 48, RP = 14;
+    const xh = svgEl.querySelector(".xh");
+    svgEl.addEventListener("pointermove", (e) => {
+      const rc = svgEl.getBoundingClientRect();
+      const sx = ((e.clientX - rc.left) / rc.width) * vb.width;
+      const i = pts.length === 1 ? 0 : Math.max(0, Math.min(pts.length - 1, Math.round(((sx - L) / (vb.width - L - RP)) * (pts.length - 1))));
+      const px = pts.length === 1 ? (L + vb.width - RP) / 2 : L + (i / (pts.length - 1)) * (vb.width - L - RP);
+      xh.setAttribute("x1", px); xh.setAttribute("x2", px); xh.setAttribute("visibility", "visible");
+      const tip = $("tip");
+      tip.innerHTML = `<b>${pts[i].date}</b><br>${pts[i].v == null ? "no data" : pts[i].v.toLocaleString()}`;
+      tip.style.display = "block";
+      tip.style.left = Math.min(e.clientX + 14, innerWidth - 160) + "px";
+      tip.style.top = e.clientY + 14 + "px";
+    });
+    svgEl.addEventListener("pointerleave", () => { xh.setAttribute("visibility", "hidden"); $("tip").style.display = "none"; });
+  });
+}
 
 /* =========================================================
    SHARED
@@ -496,6 +681,7 @@ function renderAll() {
   $("tagline").textContent = R ? `${R.channel.name} · ${R.agents.length} agents · ${new Date(R.generated_at).toLocaleDateString()}` : "No report loaded";
   if (view === "agents") renderAgents();
   if (view === "dash") renderDash();
+  if (view === "hist") renderHist();
 }
 let toastT;
 function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => (t.style.display = "none"), 3500); }
@@ -504,6 +690,19 @@ addEventListener("resize", () => { if (view === "agents") renderAgents(); });
 try { const saved = JSON.parse(store.get("jarvis.report")); if (saved && !validate(saved)) R = saved; } catch {}
 buildMap();
 renderAll();
+
+// Reopen the connected reports folder. The browser keeps the folder; read access
+// returns at once when granted ("Allow on every visit"), or after one click on "Open folder".
+(async () => {
+  if (!canFolder) return;
+  setFolderBtn("Connect folder");
+  const saved = await idbGet("dir");
+  if (!saved) return;
+  try {
+    if ((await saved.queryPermission({ mode: "read" })) === "granted") await loadFolder(saved, true);
+    else setFolderBtn("Open folder");
+  } catch { setFolderBtn("Connect folder"); }
+})();
 </script>
 </body>
 </html>
