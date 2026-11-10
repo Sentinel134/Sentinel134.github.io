@@ -780,7 +780,7 @@ function updateFocus() {
   const f = focusIndex();
   if (f !== lastFocus) {
     lastFocus = f;
-    $("focusName").textContent = AGENTS[f].person.toUpperCase();
+    $("focusName").textContent = AGENTS[f].name.toUpperCase();
     if (view === "agents") renderAgents();
   }
 }
