@@ -283,9 +283,47 @@ async function loadFolder(dir, quiet) {
   if (!quiet) toast(`Loaded ${found.length} report${found.length > 1 ? "s" : ""}. Newest: ${found[0].date}.`);
   return dir;
 }
-function setFolderBtn(label) { const b = $("folderBtn"); b.hidden = !canFolder; const t = label === "Refresh" ? "Refresh reports" : label === "Open folder" ? "Open reports folder" : "Connect reports folder"; b.title = t; b.setAttribute("aria-label", t); }
+/* ---------- private GitHub repo (any browser, any device) ---------- */
+// A read-only fine-grained token for Sentinel134/jarvis-reports, kept in this browser only.
+const GH = "https://api.github.com/repos/Sentinel134/jarvis-reports/contents/reports";
+async function loadGitHub(quiet) {
+  const tok = store.get("jarvis.ghToken");
+  if (!tok) return false;
+  const get = async (url, raw) => {
+    const res = await fetch(url, { cache: "no-store", headers: { Authorization: `Bearer ${tok}`, Accept: raw ? "application/vnd.github.raw+json" : "application/vnd.github+json" } });
+    if (res.status === 401 || res.status === 403 || res.status === 404) throw new Error("auth");
+    if (!res.ok) throw new Error("net");
+    return res.json();
+  };
+  try {
+    const names = (await get(GH)).map((f) => f.name).filter((n) => /^\d{4}-\d{2}-\d{2}\.json$/.test(n));
+    const found = [];
+    const reps = await Promise.all(names.map((n) => get(`${GH}/${n}`, true).catch(() => null)));
+    names.forEach((n, i) => { const r = reps[i]; if (r && !validate(r) && !r.sample) found.push({ date: n.slice(0, 10), report: r }); });
+    if (!found.length) { if (!quiet) toast("No reports in jarvis-reports/reports yet."); return true; }
+    found.sort((a, b) => b.date.localeCompare(a.date));
+    HIST = found;
+    useReport(found[0].report, true, true);
+    setFolderBtn("Refresh");
+    if (!quiet) toast(`Loaded ${found.length} report${found.length > 1 ? "s" : ""} from GitHub. Newest: ${found[0].date}.`);
+    return true;
+  } catch (e) {
+    if (e.message === "auth") { store.set("jarvis.ghToken", null); toast("GitHub refused the token. Connect GitHub again in Help."); }
+    else toast("Could not reach GitHub. Showing the last saved report.");
+    return true;
+  }
+}
+function connectGitHub() {
+  const t = prompt("Paste a fine-grained GitHub token with read-only Contents access to Sentinel134/jarvis-reports. It is stored only in this browser.");
+  if (!t || !t.trim()) return;
+  store.set("jarvis.ghToken", t.trim());
+  closePanel();
+  loadGitHub(false);
+}
+function setFolderBtn(label) { const b = $("folderBtn"); b.hidden = !canFolder && !store.get("jarvis.ghToken"); const t = label === "Refresh" ? "Refresh reports" : label === "Open folder" ? "Open reports folder" : "Connect reports folder"; b.title = t; b.setAttribute("aria-label", t); }
 async function folderClick() {
   try {
+    if (store.get("jarvis.ghToken")) { await loadGitHub(false); return; }
     if (DIR) { await loadFolder(DIR); return; }
     const saved = await idbGet("dir");
     if (saved && (await saved.requestPermission({ mode: "read" })) === "granted") { await loadFolder(saved); return; }
@@ -936,13 +974,17 @@ function openHelp() {
     <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Click the <b>upload</b> icon at the top right and choose <b>reports/latest.json</b>. You can also drag the file onto the page.</div></div>
     <h3>Privacy</h3>
     <p class="muted">The report stays in this browser. Jarvis remembers the last report and the connected folder on this device until you click Forget.</p>
-    <h3>Every report in one place</h3>
+    <h3>Load reports automatically</h3>
+    <p class="muted">Connect GitHub once and the page opens the newest report from your private <b>jarvis-reports</b> repo on every visit, with all past reports under History. Make the token at github.com/settings/personal-access-tokens: fine-grained, only <b>jarvis-reports</b>, Contents read-only.</p>
+    <div class="row"><button class="btn" id="hGitHub">${store.get("jarvis.ghToken") ? "Change GitHub token" : "Connect GitHub"}</button></div>
+    <h3>Or connect the local folder</h3>
     <p class="muted">Click the <b>refresh</b> icon at the top right and choose <b>jarvis-reports\\reports</b>. The page then opens the newest report on each visit and shows all past reports under History. Works in Edge and Chrome.</p>
     <div class="row"><button class="btn ghost" id="hSample">View sample</button><button class="btn ghost" id="hForget">Forget report</button></div>
 `;
   $("px").onclick = closePanel;
+  $("hGitHub").onclick = connectGitHub;
   $("hSample").onclick = () => { closePanel(); useReport(JSON.parse($("sample").textContent), false); };
-  $("hForget").onclick = async () => { store.set("jarvis.report", null); await idbSet("dir", null); R = null; DIR = null; HIST = []; setFolderBtn("Connect folder"); buildMap(); renderAll(); closePanel(); toast("Report and folder removed from this browser."); };
+  $("hForget").onclick = async () => { store.set("jarvis.report", null); store.set("jarvis.ghToken", null); await idbSet("dir", null); R = null; DIR = null; HIST = []; setFolderBtn("Connect folder"); buildMap(); renderAll(); closePanel(); toast("Report and folder removed from this browser."); };
   openPanel(false);
 }
 $("moreBtn").onclick = openHelp;
@@ -1160,6 +1202,7 @@ renderAll();
 // Reopen the connected reports folder. The browser keeps the folder; read access
 // returns at once when granted ("Allow on every visit"), or after one click on "Open folder".
 (async () => {
+  if (await loadGitHub(true)) return;
   if (!canFolder) return;
   setFolderBtn("Connect folder");
   const saved = await idbGet("dir");
