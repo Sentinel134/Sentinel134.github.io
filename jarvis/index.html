@@ -171,6 +171,11 @@
     /* locked panel: controls visible but inert */
     #controlsDrawer.locked input[type="range"].cosmic-slider { opacity: .45; cursor: not-allowed; }
     #controlsDrawer.locked .preset-btn, #controlsDrawer.locked #btnResetRoots { opacity: .45; cursor: not-allowed; }
+    .step-row { display: flex; align-items: center; gap: 6px; }
+    .step-btn { flex: none; width: 22px; height: 22px; border-radius: 7px; display: inline-flex; align-items: center; justify-content: center;
+      background: rgba(15, 23, 42, .75); border: 1px solid rgba(148, 163, 184, .25); color: #e2e8f0; font: 600 13px/1 'JetBrains Mono', monospace; cursor: pointer; }
+    .step-btn:hover:not(:disabled) { border-color: rgba(56, 189, 248, .6); color: #38bdf8; }
+    .step-btn:disabled { opacity: .4; cursor: not-allowed; }
     .lock-on { color: #fbbf24 !important; border-color: rgba(251,191,36,.55) !important; background: rgba(251,191,36,.12) !important; }
     #tip { position: fixed; pointer-events: none; z-index: 60; display: none; max-width: 300px; padding: 7px 10px; border-radius: 10px; font-size: 12px; line-height: 1.35;
       background: rgba(10,14,29,.94); border: 1px solid rgba(148,163,184,.22); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
@@ -334,10 +339,10 @@
               JARVIS
             </button>
             <button data-brain-tab="VIDEOS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">
-              VIDEOS
+              CARLO
             </button>
             <button data-brain-tab="SHORTS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">
-              SHORTS
+              MARIA
             </button>
           </div>
 
@@ -590,6 +595,8 @@
     const STATE_TXT = { pulse: 'Fix still needed · not used yet', glow: 'Finding · or fix applied / used' };
     const fmtDate = (d) => { if (!d) return ''; const t = new Date(String(d).length === 10 ? d + 'T00:00:00' : d); return isNaN(t) ? String(d) : t.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); };
     const DATA_KEY = { YTAS: 'ytas', VIDEOS: 'videos', SHORTS: 'shorts' };
+    const BRAIN_NAME = { YTAS: 'YTAS', JARVIS: 'JARVIS', VIDEOS: 'CARLO', SHORTS: 'MARIA' };
+    const who = (node) => node ? (node.name ? `${node.name} · ${node.title.replace(/^[A-G1-5] · /, '')}${node.slug ? ' (' + node.slug + ')' : ''}` : node.title) : '';
     let B = null, DIR = null;
     const M = () => window.JarvisMap;
 
@@ -673,7 +680,7 @@
     function openItem(it, node, brainId) {
       if (!it) return;
       const color = node ? node.color : '#38bdf8';
-      openBox(node ? `${brainId} · ${node.title}` : brainId, `
+      openBox(node ? `${BRAIN_NAME[brainId]} · ${who(node)}` : BRAIN_NAME[brainId], `
         <h4 class="font-cosmic text-base text-white">${it.state === 'pulse' ? 'Fix still needed' : it.kind === 'finding' ? 'Report finding' : it.kind === 'edit' ? 'Edit component' : 'Fix applied'}</h4>
         <p class="text-sm text-slate-100"><b>${esc(it.text)}</b></p>
         <p><span class="text-slate-400 uppercase tracking-wider text-[10px] block">Video</span>${vidLink(it)}</p>
@@ -683,14 +690,14 @@
     }
     function openNode(node, brainId) {
       const items = node.items || [], pz = items.filter((i) => i.state === 'pulse').length, cap = M().state.geometry.rootsPerNode;
-      openBox(`${brainId} · ${node.title}`, `
+      openBox(`${BRAIN_NAME[brainId]} · ${who(node)}`, `
         <p class="text-slate-400">${node.slug ? esc(node.slug) + ' · ' : ''}${items.length} item${items.length === 1 ? '' : 's'}: ${pz} pulsing, ${items.length - pz} lit.${items.length > cap ? ` The map shows the first ${cap} on its tips; all are listed here.` : ''}</p>
         ${itemRows(items, node.color, node, brainId)}`);
     }
     function openBrain(id) {
       if (!B) { openHelp(); return; }
       const brain = M().getBrainById(id);
-      const rows = brain.nodes.map((n) => { const it = n.items || [], pz = it.filter((x) => x.state === 'pulse').length; return `<div class="row-item" data-open="${opener(() => openNode(n, id))}"><i class="dot ${pz ? 'pulse' : ''}" style="--c:${it.length ? n.color : 'rgba(203,213,225,.4)'}"></i><div><b class="text-slate-100">${esc(n.title)}</b><div class="text-slate-400">${it.length} lit · ${pz} pulsing</div></div></div>`; }).join('');
+      const rows = brain.nodes.map((n) => { const it = n.items || [], pz = it.filter((x) => x.state === 'pulse').length; return `<div class="row-item" data-open="${opener(() => openNode(n, id))}"><i class="dot ${pz ? 'pulse' : ''}" style="--c:${it.length ? n.color : 'rgba(203,213,225,.4)'}"></i><div><b class="text-slate-100">${esc(who(n))}</b><div class="text-slate-400">${it.length} lit · ${pz} pulsing</div></div></div>`; }).join('');
       let body = '';
       if (id === 'YTAS') {
         const reps = B.ytas.reports || [], learn = (B.ytas.learnings || []).slice(-8).reverse();
@@ -701,20 +708,20 @@
       } else if (id === 'JARVIS') {
         const rot = B.jarvis.rotation || {}, tr = B.jarvis.in_transit || {};
         const rotRow = (k, label) => rot[k] ? `<div class="row-item"><i class="dot" style="--c:#c4b5fd"></i><div><b class="text-slate-100">${label}</b><div class="text-slate-400">Used: ${esc((rot[k].used || []).join(', ') || 'none')} · Drafted: ${esc((rot[k].drafted || []).join(', ') || 'none')}<br>Left in this rotation: ${esc((rot[k].remaining || []).join(', ') || 'none')}</div></div></div>` : '';
-        body = `<p class="text-slate-400">Holds your two script prompts. Receives YTAS's feedback one way and routes each fix to VIDEOS or SHORTS.</p>
+        body = `<p class="text-slate-400">Holds your two script prompts. Receives YTAS's feedback one way and routes each fix to CARLO (long-form videos) or MARIA (Shorts).</p>
           <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-1">Script prompts</h4>
           <div class="row-item"><i class="dot" style="--c:#d39bff"></i><div><b class="text-slate-100">${esc(B.jarvis.prompts?.videos || 'missing')}</b><div class="text-slate-400">long-form · jarvis/base-prompt.md</div></div></div>
           <div class="row-item"><i class="dot" style="--c:#7ff0c8"></i><div><b class="text-slate-100">${esc(B.jarvis.prompts?.shorts || 'missing')}</b><div class="text-slate-400">Shorts · jarvis/base-prompt-shorts.md</div></div></div>
-          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">In transit</h4><p class="text-slate-400">${(tr.videos || []).length} fix${(tr.videos || []).length === 1 ? '' : 'es'} on the way to VIDEOS, ${(tr.shorts || []).length} to SHORTS.</p>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">In transit</h4><p class="text-slate-400">${(tr.videos || []).length} fix${(tr.videos || []).length === 1 ? '' : 'es'} on the way to CARLO, ${(tr.shorts || []).length} to MARIA.</p>
           <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Pillar rotation</h4>${rotRow('short', 'Shorts')}${rotRow('long', 'Long-form')}
           <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Scripts written</h4><p class="text-slate-400">${B.jarvis.scripts ?? 0}</p>`;
       } else {
         const k = DATA_KEY[id], all = (B[k].roots.all || []);
-        body = `<p class="text-slate-400">${id === 'VIDEOS' ? 'Long-form scripts, parts A to G of your script prompt.' : 'Shorts, the five beats of your Shorts prompt.'} A tip pulses when JARVIS received the fix and no script has used it yet, and stays lit once a script used it.</p>
+        body = `<p class="text-slate-400">${id === 'VIDEOS' ? 'CARLO writes the long-form videos: parts A to G of your script prompt.' : 'MARIA writes the Shorts: the five beats of your Shorts prompt.'} A tip pulses when JARVIS received the fix and no script has used it yet, and stays lit once a script used it.</p>
           <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-1">Parts</h4>${rows}
           <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Whole script</h4>${all.length ? itemRows(all, id === 'VIDEOS' ? '#d39bff' : '#7ff0c8', null, id) : '<p class="text-slate-400">No whole-script fixes.</p>'}`;
       }
-      openBox(id, body);
+      openBox(BRAIN_NAME[id], body);
     }
     function summaryHTML() {
       if (!B) return '<p class="text-slate-400">Load brain.json to see the summary.</p>';
@@ -725,11 +732,11 @@
       const pulsing = all.filter((x) => x.it.state === 'pulse');
       const count = (id) => all.filter((x) => x.b.id === id).length;
       return `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          ${['YTAS', 'VIDEOS', 'SHORTS'].map((id) => `<div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">${id} lit</span><span class="text-sky-300 font-semibold text-base">${count(id)}</span></div>`).join('')}
+          ${['YTAS', 'VIDEOS', 'SHORTS'].map((id) => `<div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">${BRAIN_NAME[id]} lit</span><span class="text-sky-300 font-semibold text-base">${count(id)}</span></div>`).join('')}
           <div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">Pulsing</span><span class="text-white font-semibold text-base">${pulsing.length}</span></div>
           <div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">Data date</span><span class="text-slate-200 font-semibold">${esc(fmtDate(B.generated_at))}</span></div>
         </div>
-        <div><div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Still pulsing</div>${pulsing.length ? pulsing.map(({ it, n, b }) => `<div class="row-item" data-open="${opener(() => openItem(it, n.key ? n : null, b.id))}">${dot(it, n.color)}<div><b class="text-slate-100">${esc(it.text)}</b><div class="text-slate-400">${esc(b.id)} · ${esc(n.title)} · ${vidLink(it)}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''}</div></div></div>`).join('') : '<p class="text-slate-400">Nothing pulsing. Every fix is applied or used.</p>'}</div>`;
+        <div><div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Still pulsing</div>${pulsing.length ? pulsing.map(({ it, n, b }) => `<div class="row-item" data-open="${opener(() => openItem(it, n.key ? n : null, b.id))}">${dot(it, n.color)}<div><b class="text-slate-100">${esc(it.text)}</b><div class="text-slate-400">${esc(BRAIN_NAME[b.id] || b.id)} · ${esc(n.key ? who(n) : n.title)} · ${vidLink(it)}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''}</div></div></div>`).join('') : '<p class="text-slate-400">Nothing pulsing. Every fix is applied or used.</p>'}</div>`;
     }
     function openHelp() {
       openBox('Help', `
@@ -748,11 +755,11 @@
       if (!e || (!tip && !brain && !node)) { el.style.display = 'none'; return; }
       if (tip) {
         const it = tip.root.item;
-        if (!it) { el.innerHTML = `<b>${esc(tip.nodeTitle)}</b><br><span class="text-slate-400">No data on this tip yet</span>`; }
+        if (!it) { el.innerHTML = `<b>${esc(who(tip.node))}</b><br><span class="text-slate-400">No data on this tip yet</span>`; }
         else el.innerHTML = `<b>${esc(it.text)}</b><br><span class="text-slate-400">${esc(it.video_title || it.video_id || 'channel-wide')}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''}</span><br><span class="st" style="color:${it.state === 'pulse' ? '#fff' : tip.node.color}">${esc(it.detail || STATE_TXT[it.state])}</span>`;
       } else if (node) {
         const it = node.node.items || [];
-        el.innerHTML = `<b>${esc(node.node.title)}</b><br><span class="text-slate-400">${it.length} lit · ${it.filter((i) => i.state === 'pulse').length} pulsing · click to list</span>`;
+        el.innerHTML = `<b>${esc(who(node.node))}</b><br><span class="text-slate-400">${it.length} lit · ${it.filter((i) => i.state === 'pulse').length} pulsing · click to list</span>`;
       } else {
         const lit = brain.nodes.reduce((s, n) => s + (n.items || []).length, 0);
         el.innerHTML = `<b>${esc(brain.title)}</b><br><span class="text-slate-400">${brain.nodes.length ? lit + ' lit · ' : ''}click for details${M().state.locked ? '' : ' · drag to move'}</span>`;
@@ -939,17 +946,17 @@
           palette: ['#e0f2fe', '#c4b5fd', '#7dd3fc', '#ffffff', '#fde68a'],
           glowColor: 'rgba(139, 92, 246, 0.22)',
           nodes: [
-            { char: 'S', title: 'SEARCH',         slug: '/yt-seo',       key: 'yt-seo',       angleDeg: -114.5, color: '#eab308', roots: [] },
-            { char: 'R', title: 'RETENTION',      slug: '/yt-retention', key: 'yt-retention', angleDeg: -81.8,  color: '#6366f1', roots: [] },
-            { char: 'N', title: 'NICHE OUTLIERS', slug: '/yt-viral',     key: 'yt-viral',     angleDeg: -49.1,  color: '#a855f7', roots: [] },
-            { char: 'A', title: 'AUDIT',          slug: '/yt-audit',     key: 'yt-audit',     angleDeg: -16.4,  color: '#38bdf8', roots: [] },
-            { char: 'S', title: 'SCRIPT',         slug: '/yt-script',    key: 'yt-script',    angleDeg: 16.4,   color: '#60a5fa', roots: [] },
-            { char: 'P', title: 'PACKAGING',      slug: '/yt-package',   key: 'yt-package',   angleDeg: 49.1,   color: '#f97316', roots: [] },
-            { char: 'E', title: 'EDIT',           slug: '/yt-edit',      key: 'yt-edit',      angleDeg: 81.8,   color: '#ec4899', roots: [] },
-            { char: 'C', title: 'COMMENTS',       slug: '/yt-comment',   key: 'yt-comment',   angleDeg: 114.5,  color: '#64748b', roots: [] },
-            { char: 'P', title: 'PLAN',           slug: '/yt-plan',      key: 'yt-plan',      angleDeg: 147.3,  color: '#14b8a6', roots: [] },
-            { char: 'S', title: 'SHORTS',         slug: '/yt-shorts',    key: 'yt-shorts',    angleDeg: 180,    color: '#22c55e', roots: [] },
-            { char: 'C', title: 'CHAPTERS',       slug: '/yt-chapters',  key: 'yt-chapters',  angleDeg: -147.3, color: '#8b5cf6', roots: [] }
+            { char: 'J', name: 'James', title: 'SEARCH',         slug: '/yt-seo',       key: 'yt-seo',       angleDeg: -114.5, color: '#eab308', roots: [] },
+            { char: 'M', name: 'Michael', title: 'RETENTION',      slug: '/yt-retention', key: 'yt-retention', angleDeg: -81.8,  color: '#6366f1', roots: [] },
+            { char: 'D', name: 'Daniel', title: 'NICHE OUTLIERS', slug: '/yt-viral',     key: 'yt-viral',     angleDeg: -49.1,  color: '#a855f7', roots: [] },
+            { char: 'J', name: 'John', title: 'AUDIT',          slug: '/yt-audit',     key: 'yt-audit',     angleDeg: -16.4,  color: '#38bdf8', roots: [] },
+            { char: 'D', name: 'David', title: 'SCRIPT',         slug: '/yt-script',    key: 'yt-script',    angleDeg: 16.4,   color: '#60a5fa', roots: [] },
+            { char: 'M', name: 'Mark', title: 'PACKAGING',      slug: '/yt-package',   key: 'yt-package',   angleDeg: 49.1,   color: '#f97316', roots: [] },
+            { char: 'J', name: 'Joshua', title: 'EDIT',           slug: '/yt-edit',      key: 'yt-edit',      angleDeg: 81.8,   color: '#ec4899', roots: [] },
+            { char: 'A', name: 'Andrew', title: 'COMMENTS',       slug: '/yt-comment',   key: 'yt-comment',   angleDeg: 114.5,  color: '#64748b', roots: [] },
+            { char: 'M', name: 'Matthew', title: 'PLAN',           slug: '/yt-plan',      key: 'yt-plan',      angleDeg: 147.3,  color: '#14b8a6', roots: [] },
+            { char: 'R', name: 'Ryan', title: 'SHORTS',         slug: '/yt-shorts',    key: 'yt-shorts',    angleDeg: 180,    color: '#22c55e', roots: [] },
+            { char: 'K', name: 'Kevin', title: 'CHAPTERS',       slug: '/yt-chapters',  key: 'yt-chapters',  angleDeg: -147.3, color: '#8b5cf6', roots: [] }
           ]
         },
         {
@@ -968,7 +975,7 @@
         },
         {
           id: 'VIDEOS',
-          title: 'VIDEOS',
+          title: 'CARLO',
           baseX: 255,
           baseY: -175,
           x: 255,
@@ -979,18 +986,18 @@
           palette: ['#e9d5ff', '#bae6fd', '#f5d0fe', '#ffffff', '#fde047'],
           glowColor: 'rgba(168, 85, 247, 0.20)',
           nodes: [
-            { char: 'A', title: 'A · OPENING HOOK', key: 'A',             slug: null, angleDeg: 180,  color: '#38bdf8', roots: [] },
-            { char: 'B', title: 'B · THE FAMILIAR BEHAVIOR', key: 'B',    slug: null, angleDeg: -138, color: '#64748b', roots: [] },
-            { char: 'C', title: 'C · THE PSYCHOLOGY BEHIND IT', key: 'C', slug: null, angleDeg: -92,  color: '#a855f7', roots: [] },
-            { char: 'D', title: 'D · WHY OUR BRAIN DOES THIS', key: 'D',  slug: null, angleDeg: -45,  color: '#8b5cf6', roots: [] },
-            { char: 'E', title: 'E · THE REAL COST', key: 'E',            slug: null, angleDeg: 2,    color: '#d946ef', roots: [] },
-            { char: 'F', title: 'F · THE BIGGER PICTURE', key: 'F',       slug: null, angleDeg: 54,   color: '#f59e0b', roots: [] },
-            { char: 'G', title: 'G · CLOSING INSIGHT', key: 'G',          slug: null, angleDeg: 116,  color: '#f43f5e', roots: [] }
+            { char: 'C', name: 'Christian', title: 'A · OPENING HOOK', key: 'A',             slug: null, angleDeg: 180,  color: '#38bdf8', roots: [] },
+            { char: 'J', name: 'Joseph', title: 'B · THE FAMILIAR BEHAVIOR', key: 'B',    slug: null, angleDeg: -138, color: '#64748b', roots: [] },
+            { char: 'A', name: 'Anthony', title: 'C · THE PSYCHOLOGY BEHIND IT', key: 'C', slug: null, angleDeg: -92,  color: '#a855f7', roots: [] },
+            { char: 'J', name: 'Justin', title: 'D · WHY OUR BRAIN DOES THIS', key: 'D',  slug: null, angleDeg: -45,  color: '#8b5cf6', roots: [] },
+            { char: 'N', name: 'Nathan', title: 'E · THE REAL COST', key: 'E',            slug: null, angleDeg: 2,    color: '#d946ef', roots: [] },
+            { char: 'G', name: 'Gabriel', title: 'F · THE BIGGER PICTURE', key: 'F',       slug: null, angleDeg: 54,   color: '#f59e0b', roots: [] },
+            { char: 'A', name: 'Adrian', title: 'G · CLOSING INSIGHT', key: 'G',          slug: null, angleDeg: 116,  color: '#f43f5e', roots: [] }
           ]
         },
         {
           id: 'SHORTS',
-          title: 'SHORTS',
+          title: 'MARIA',
           baseX: 255,
           baseY: 185,
           x: 255,
@@ -1001,18 +1008,18 @@
           palette: ['#ccfbf1', '#bbf7d0', '#bae6fd', '#ffffff', '#fef08a'],
           glowColor: 'rgba(56, 189, 248, 0.18)',
           nodes: [
-            { char: '1', title: '1 · THE HOOK', key: '1',         slug: null, angleDeg: -90, color: '#38bdf8', roots: [] },
-            { char: '2', title: '2 · THE RECOGNITION', key: '2',  slug: null, angleDeg: -18, color: '#84cc16', roots: [] },
-            { char: '3', title: '3 · THE PSYCHOLOGY', key: '3',   slug: null, angleDeg: 54,  color: '#eab308', roots: [] },
-            { char: '4', title: '4 · THE REVELATION', key: '4',   slug: null, angleDeg: 126, color: '#a8a29e', roots: [] },
-            { char: '5', title: '5 · THE CLOSING LOOP', key: '5', slug: null, angleDeg: 198, color: '#a78bfa', roots: [] }
+            { char: 'S', name: 'Sophia', title: '1 · THE HOOK', key: '1',         slug: null, angleDeg: -90, color: '#38bdf8', roots: [] },
+            { char: 'A', name: 'Angela', title: '2 · THE RECOGNITION', key: '2',  slug: null, angleDeg: -18, color: '#84cc16', roots: [] },
+            { char: 'J', name: 'Jasmine', title: '3 · THE PSYCHOLOGY', key: '3',   slug: null, angleDeg: 54,  color: '#eab308', roots: [] },
+            { char: 'N', name: 'Nicole', title: '4 · THE REVELATION', key: '4',   slug: null, angleDeg: 126, color: '#a8a29e', roots: [] },
+            { char: 'S', name: 'Samantha', title: '5 · THE CLOSING LOOP', key: '5', slug: null, angleDeg: 198, color: '#a78bfa', roots: [] }
           ]
         }
       ];
 
       // Inter-Brain Connections
       const bridges = [
-        { from: 'YTAS',   to: 'JARVIS', badge: 'ONE WAY', pulseColor: '#38bdf8', secondaryColor: '#c084fc', speed: 0.34, count: 3 },
+        { from: 'YTAS',   to: 'JARVIS', badge: null, pulseColor: '#38bdf8', secondaryColor: '#c084fc', speed: 0.34, count: 3 },
         { from: 'JARVIS', to: 'VIDEOS', badge: null,      pulseColor: '#c084fc', secondaryColor: '#e879f9', speed: 0.28, count: 2 },
         { from: 'JARVIS', to: 'SHORTS', badge: null,      pulseColor: '#38bdf8', secondaryColor: '#a78bfa', speed: 0.28, count: 2 }
       ];
@@ -1408,26 +1415,12 @@
         ctx.arc(brain.x, brain.y, nebulaR, 0, Math.PI * 2);
         ctx.fill();
 
-        // 2. Subtle Orbital Guide Ring for Inner Nodes
-        if (brain.nodes.length > 0) {
-          const ringR = state.geometry.ringRadius * bScale;
-          ctx.save();
-          ctx.strokeStyle = isSelected || isHovered
-            ? 'rgba(56, 189, 248, 0.24)'
-            : 'rgba(148, 163, 184, 0.10)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.arc(brain.x, brain.y, ringR, 0, Math.PI * 2);
-          ctx.stroke();
-          ctx.restore();
-        }
-
         // 3. Selection / Hover Reticle around Core
-        if (isSelected || isHovered) {
+        if (isHovered) {
           ctx.save();
           ctx.setLineDash([4, 4]);
           ctx.lineDashOffset = time * 10;
-          ctx.strokeStyle = isHovered ? 'rgba(56, 189, 248, 0.65)' : 'rgba(56, 189, 248, 0.35)';
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
           ctx.lineWidth = 1.2;
           ctx.beginPath();
           ctx.arc(brain.x, brain.y, coreR + 7, 0, Math.PI * 2);
@@ -1584,24 +1577,9 @@
           const titleFontSize = Math.max(9, Math.round(10 * bScale));
           const subFontSize = Math.max(8, Math.round(8.8 * bScale));
 
-          ctx.font = `600 ${titleFontSize}px "Cinzel", Georgia, serif`;
+          ctx.font = `600 ${Math.max(10, Math.round(11.5 * bScale))}px "Cinzel", Georgia, serif`;
           ctx.fillStyle = geom.litCount > 0 ? '#f8fafc' : 'rgba(226, 232, 240, 0.86)';
-          ctx.fillText(node.title, geom.labelX, geom.labelY - subFontSize * 0.65);
-
-          // Subtitle (e.g. "/yt-seo · 1 lit" or "1 lit · 1 pulsing" or "0 lit")
-          let statusParts = [];
-          if (node.slug) statusParts.push(node.slug);
-          statusParts.push(`${geom.litCount} lit`);
-          if (geom.pulsingCount > 0) statusParts.push(`${geom.pulsingCount} pulsing`);
-          const subText = statusParts.join(' · ');
-
-          ctx.font = `400 ${subFontSize}px "JetBrains Mono", monospace`;
-          ctx.fillStyle = geom.pulsingCount > 0
-            ? node.color
-            : geom.litCount > 0
-            ? '#cbd5e1'
-            : 'rgba(148, 163, 184, 0.72)';
-          ctx.fillText(subText, geom.labelX, geom.labelY + titleFontSize * 0.72);
+          ctx.fillText((node.name || node.title).toUpperCase(), geom.labelX, geom.labelY);
           ctx.restore();
         });
 
@@ -1680,7 +1658,7 @@
                   rootIndex: rIdx,
                   root: rp.root,
                   node,
-                  nodeTitle: node.title
+                  nodeTitle: node.name || node.title
                 };
               }
             }
@@ -1879,7 +1857,7 @@
         const drawer = document.getElementById('controlsDrawer');
         drawer.classList.toggle('locked', on);
         drawer.querySelectorAll('input[type="range"]').forEach((el) => (el.disabled = on));
-        drawer.querySelectorAll('.preset-btn, #btnResetRoots').forEach((el) => (el.disabled = on));
+        drawer.querySelectorAll('.preset-btn, #btnResetRoots, .step-btn').forEach((el) => (el.disabled = on));
         document.querySelectorAll('.lock-closed').forEach((el) => el.classList.toggle('hidden', !on));
         document.querySelectorAll('.lock-open').forEach((el) => el.classList.toggle('hidden', on));
         const t = on ? 'Unlock layout to edit' : 'Lock layout';
@@ -1893,6 +1871,31 @@
         saveLayout();
         if (!quiet) showToast(on ? 'Layout locked' : 'Layout unlocked: changes are saved');
       }
+      // + and - beside every slider: one step per click, keeps stepping while held
+      document.querySelectorAll('#controlsDrawer input[type="range"].cosmic-slider').forEach((input) => {
+        const row = document.createElement('div'); row.className = 'step-row';
+        input.parentNode.insertBefore(row, input);
+        const mk = (sign) => {
+          const b = document.createElement('button'); b.type = 'button'; b.className = 'step-btn'; b.textContent = sign > 0 ? '+' : '−';
+          b.setAttribute('aria-label', (sign > 0 ? 'Increase ' : 'Decrease ') + (input.id.replace('slider', '')));
+          const stepOnce = () => {
+            if (state.locked) return;
+            const st = parseFloat(input.step) || 1, min = parseFloat(input.min), max = parseFloat(input.max);
+            const v = Math.min(max, Math.max(min, Math.round((parseFloat(input.value) + sign * st) / st) * st));
+            input.value = String(+v.toFixed(4));
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+          };
+          let hold = null, rep = null;
+          const stop = () => { clearTimeout(hold); clearInterval(rep); hold = rep = null; };
+          b.addEventListener('pointerdown', (e) => { e.preventDefault(); stepOnce(); hold = setTimeout(() => (rep = setInterval(stepOnce, 70)), 380); });
+          ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, stop));
+          b.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stepOnce(); } });
+          return b;
+        };
+        row.append(mk(-1), input, mk(1));
+        input.style.flex = '1';
+      });
+
       document.getElementById('btnLockTop').addEventListener('click', () => setLocked(!state.locked));
       document.getElementById('btnLockPanel').addEventListener('click', () => setLocked(!state.locked));
 
@@ -1961,9 +1964,9 @@
         sliderGlobalSpread.value = state.globalSpread.toFixed(2);
         document.getElementById('valGlobalSpread').textContent = `${state.globalSpread.toFixed(2)}x`;
 
-        document.getElementById('lblBrainNameX').textContent = activeBrain.id;
-        document.getElementById('lblBrainNameY').textContent = activeBrain.id;
-        document.getElementById('lblBrainNameScale').textContent = activeBrain.id;
+        document.getElementById('lblBrainNameX').textContent = activeBrain.title;
+        document.getElementById('lblBrainNameY').textContent = activeBrain.title;
+        document.getElementById('lblBrainNameScale').textContent = activeBrain.title;
 
         sliderBrainX.value = Math.round(activeBrain.baseX);
         document.getElementById('valBrainX').textContent = `${Math.round(activeBrain.x)} px`;
@@ -2132,7 +2135,7 @@
       function applyFocusMode(index) {
         state.focusIndex = (index + state.focusModes.length) % state.focusModes.length;
         const mode = state.focusModes[state.focusIndex];
-        document.getElementById('btnFocusCycle').textContent = mode;
+        document.getElementById('btnFocusCycle').textContent = mode === 'ALL BRAINS' ? mode : getBrainById(mode).title;
 
         if (mode === 'ALL BRAINS') {
           state.camera.targetX = 0;
@@ -2239,9 +2242,9 @@
             <div class="text-[10px] uppercase tracking-wider text-slate-400">Brain distances (layout)</div>
             <div class="grid grid-cols-2 gap-2">
               <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>YTAS ↔ JARVIS</span><span class="text-emerald-300">${data.distancesPx.YTAS_to_JARVIS} px</span></div>
-              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ VIDEOS</span><span class="text-purple-300">${data.distancesPx.JARVIS_to_VIDEOS} px</span></div>
-              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ SHORTS</span><span class="text-sky-300">${data.distancesPx.JARVIS_to_SHORTS} px</span></div>
-              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>VIDEOS ↔ SHORTS</span><span class="text-amber-300">${data.distancesPx.VIDEOS_to_SHORTS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ CARLO</span><span class="text-purple-300">${data.distancesPx.JARVIS_to_VIDEOS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ MARIA</span><span class="text-sky-300">${data.distancesPx.JARVIS_to_SHORTS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>CARLO ↔ MARIA</span><span class="text-amber-300">${data.distancesPx.VIDEOS_to_SHORTS} px</span></div>
             </div>
           </div>`;
         window.JarvisData.bindRows(document.getElementById('inspectorContent'));
