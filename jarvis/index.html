@@ -1157,7 +1157,7 @@
 
       // Compute exact world geometry for a brain's nodes and sinuous 7-tendril dendritic roots
       // Slow orbit: each brain's agents turn around it at a normal pace
-      // (one full turn per minute). Pauses while a root tip is hovered.
+      // (one full turn per minute), without pausing on hover.
       let showNames = true;
       try { showNames = localStorage.getItem('jarvis.names') !== '0'; } catch (e) {}
       const SPIN_DEG_PER_SEC = 6;
@@ -1165,7 +1165,7 @@
       const SPIN_REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       let spinDeg = 0, spinLast = null;
       function advanceSpin(now) {
-        if (spinLast !== null && !SPIN_REDUCED && !state.interaction.hoveredTip) {
+        if (spinLast !== null && !SPIN_REDUCED) {
           spinDeg = (spinDeg + SPIN_DEG_PER_SEC * Math.min(0.1, (now - spinLast) / 1000)) % 360;
         }
         spinLast = now;
