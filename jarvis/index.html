@@ -230,6 +230,12 @@
       <svg class="w-4 h-4 lock-open hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path></svg>
     </button>
 
+    <!-- Show / hide agent names -->
+    <button id="btnNames" class="hud-circle-btn" title="Hide names" aria-label="Hide names" aria-pressed="true">
+      <span class="names-on font-semibold text-[13px] leading-none" style="font-family:Georgia,serif">Aa</span>
+      <span class="names-off hidden font-semibold text-[13px] leading-none line-through opacity-60" style="font-family:Georgia,serif">Aa</span>
+    </button>
+
     <!-- Connect / refresh the brain data folder -->
     <button id="btnFolder" class="hud-circle-btn hidden" title="Connect brain data folder" aria-label="Connect brain data folder">
       <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1152,6 +1158,8 @@
       // Compute exact world geometry for a brain's nodes and sinuous 7-tendril dendritic roots
       // Slow orbit: each brain's agents turn around it at a normal pace
       // (one full turn per minute). Pauses while a root tip is hovered.
+      let showNames = true;
+      try { showNames = localStorage.getItem('jarvis.names') !== '0'; } catch (e) {}
       const SPIN_DEG_PER_SEC = 6;
       const SPIN_DIR = { YTAS: 1, VIDEOS: -1, SHORTS: 1, JARVIS: 0 };
       const SPIN_REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1592,7 +1600,7 @@
 
           ctx.font = `600 ${Math.max(10, Math.round(11.5 * bScale))}px "Cinzel", Georgia, serif`;
           ctx.fillStyle = geom.litCount > 0 ? '#f8fafc' : 'rgba(226, 232, 240, 0.86)';
-          ctx.fillText((node.name || node.title).toUpperCase(), geom.labelX, geom.labelY);
+          if (showNames) ctx.fillText((node.name || node.title).toUpperCase(), geom.labelX, geom.labelY);
           ctx.restore();
         });
 
@@ -1912,6 +1920,22 @@
       });
 
       document.getElementById('btnLockTop').addEventListener('click', () => setLocked(!state.locked));
+      (function () {
+        const btn = document.getElementById('btnNames');
+        const paint = () => {
+          btn.querySelector('.names-on').classList.toggle('hidden', !showNames);
+          btn.querySelector('.names-off').classList.toggle('hidden', showNames);
+          const t = showNames ? 'Hide names' : 'Show names';
+          btn.title = t; btn.setAttribute('aria-label', t); btn.setAttribute('aria-pressed', String(showNames));
+        };
+        paint();
+        btn.addEventListener('click', () => {
+          showNames = !showNames;
+          try { localStorage.setItem('jarvis.names', showNames ? '1' : '0'); } catch (e) {}
+          paint();
+          showToast(showNames ? 'Names shown' : 'Names hidden');
+        });
+      })();
       document.getElementById('btnLockPanel').addEventListener('click', () => setLocked(!state.locked));
 
       function markPresetCustom() {
