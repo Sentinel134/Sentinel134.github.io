@@ -1150,9 +1150,22 @@
       }
 
       // Compute exact world geometry for a brain's nodes and sinuous 7-tendril dendritic roots
+      // Slow orbit: each brain's agents turn around it at a normal pace
+      // (one full turn per minute). Pauses while a root tip is hovered.
+      const SPIN_DEG_PER_SEC = 6;
+      const SPIN_DIR = { YTAS: 1, VIDEOS: -1, SHORTS: 1, JARVIS: 0 };
+      const SPIN_REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let spinDeg = 0, spinLast = null;
+      function advanceSpin(now) {
+        if (spinLast !== null && !SPIN_REDUCED && !state.interaction.hoveredTip) {
+          spinDeg = (spinDeg + SPIN_DEG_PER_SEC * Math.min(0.1, (now - spinLast) / 1000)) % 360;
+        }
+        spinLast = now;
+      }
+
       function computeNodeGeometry(brain, node, time = 0) {
         const bScale = brain.scale;
-        const rad = (node.angleDeg * Math.PI) / 180;
+        const rad = ((node.angleDeg + spinDeg * (SPIN_DIR[brain.id] ?? 1)) * Math.PI) / 180;
         const cosA = Math.cos(rad);
         const sinA = Math.sin(rad);
 
@@ -1613,6 +1626,8 @@
         const displayPct = Math.round(state.camera.zoom * 100);
         const zoomBadge = document.getElementById('zoomBadge');
         if (zoomBadge) zoomBadge.textContent = `${displayPct}%`;
+
+        advanceSpin(performance.now());
 
         // Clear canvas
         ctx.clearRect(0, 0, w, h);
