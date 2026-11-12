@@ -38,6 +38,7 @@ button { font: inherit; cursor: pointer; color: inherit; }
 @keyframes blink { 50% { box-shadow: 0 0 0 2px var(--accent), 0 0 3px 1px rgba(201,184,255,.3); } }
 #map { width: 100%; height: 100%; touch-action: none; user-select: none; display: block; cursor: grab; }
 #map.grabbing { cursor: grabbing; }
+#map.locked { cursor: default; }
 .map-ctrl { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; font-size: .75rem; letter-spacing: .14em; color: var(--muted); }
 .map-ctrl span { display: inline-block; width: 200px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .map-ctrl button { background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1rem; }
@@ -95,6 +96,7 @@ a { color: var(--ink); }
   <div class="icons">
     <button class="ibtn" id="folderBtn" hidden title="Connect brain data folder" aria-label="Connect brain data folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg></button>
     <button class="ibtn" id="loadBtn" title="Load brain.json" aria-label="Load brain.json"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></button>
+    <button class="ibtn" id="fullBtn" title="Full screen" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
     <button class="ibtn" id="moreBtn" title="Help" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
   </div>
   <input type="file" id="file" accept=".json,application/json" hidden>
@@ -149,12 +151,13 @@ const VIDEO_PARTS = { A: "Opening Hook", B: "The Familiar Behavior", C: "The Psy
 const SHORT_PARTS = { 1: "The Hook", 2: "The Recognition", 3: "The Psychology", 4: "The Revelation", 5: "The Closing Loop" };
 const VIDEO_RGB = ["#7cc8ff", "#9fb4ff", "#b9a6ff", "#d39bff", "#ff9fd6", "#ffb86b", "#ffd479"];
 const SHORT_RGB = ["#7ff0c8", "#9fe870", "#d4f06f", "#ffd479", "#ffb86b"];
-// x, y in world units; arc: where the roots fan out (degrees, centre and spread)
+// x, y in world units; arc: where the roots fan out (centre and spread, degrees);
+// hub: how far each root's ringed hub sits from the brain; len: branch length past the hub
 const BRAINS = [
-  { id: "ytas", name: "YTAS", sub: "the analyst · 11 skills", x: -390, y: 0, R: 108, tint: "150,200,255", arc: [180, 290], len: 290 },
-  { id: "jarvis", name: "JARVIS", sub: "the scriptwriter", x: 250, y: 0, R: 108, tint: "210,195,255" },
-  { id: "videos", name: "VIDEOS", sub: "long-form · parts A to G", x: 650, y: -280, R: 66, tint: "235,175,255", arc: [-40, 190], len: 205 },
-  { id: "shorts", name: "SHORTS", sub: "Shorts · parts 1 to 5", x: 650, y: 280, R: 66, tint: "150,240,210", arc: [40, 160], len: 205 },
+  { id: "ytas", name: "YTAS", sub: "the analyst · 11 skills", x: -455, y: 0, R: 150, tint: "150,200,255", arc: [180, 292], hub: 74, len: 170, nb: 4 },
+  { id: "jarvis", name: "JARVIS", sub: "the scriptwriter", x: 285, y: 0, R: 150, tint: "210,195,255" },
+  { id: "videos", name: "VIDEOS", sub: "long-form · parts A to G", x: 765, y: -335, R: 102, tint: "235,175,255", arc: [-40, 200], hub: 58, len: 128, nb: 3 },
+  { id: "shorts", name: "SHORTS", sub: "Shorts · parts 1 to 5", x: 765, y: 335, R: 102, tint: "150,240,210", arc: [40, 168], hub: 58, len: 128, nb: 3 },
 ];
 const FOCUS = [{ name: "ALL BRAINS" }, ...BRAINS];
 const STATE_TXT = { pulse: "Fix still needed · not used yet", glow: "Finding · or fix applied / used" };
@@ -280,59 +283,66 @@ let focus = 0;
 
 const MAP = { cv: $("map"), g: $("map").getContext("2d"), W: 0, H: 0, DPR: 1 };
 let W = 0, H = 0, SCALE = 1;
+let BBOX = { x0: -900, x1: 1100, y0: -700, y1: 700 };
 function fit() {
   const rc = MAP.cv.getBoundingClientRect();
   MAP.DPR = Math.min(2, devicePixelRatio || 1);
   W = MAP.W = rc.width; H = MAP.H = rc.height;
   MAP.cv.width = Math.round(W * MAP.DPR); MAP.cv.height = Math.round(H * MAP.DPR);
-  SCALE = Math.min(W / 1840, (H - (W < 640 ? 200 : 140)) / 1180);
+  // fill the window: small side margins, room for the top bar and the bottom controls
+  SCALE = Math.min((W - 24) / (BBOX.x1 - BBOX.x0), (H - (W < 640 ? 150 : 118)) / (BBOX.y1 - BBOX.y0));
+  if (focus === 0) setFocus(0, true);
 }
 addEventListener("resize", fit);
 const S = () => SCALE * cam.z;
 const toS = (x, y) => [W / 2 + (x - cam.x) * S(), H / 2 + (y - cam.y) * S()];
 const toW = (px, py) => [cam.x + (px - W / 2) / S(), cam.y + (py - H / 2) / S()];
+const clampCam = () => { camT.x = Math.max(BBOX.x0, Math.min(BBOX.x1, camT.x)); camT.y = Math.max(BBOX.y0, Math.min(BBOX.y1, camT.y)); };
 
 function addNode(x, y, o, r) { const n = { rx: x, ry: y, x, y, vx: 0, vy: 0, ph: r() * Math.PI * 2, amp: o.amp ?? 2.5 + r() * 3, ...o }; NODES.push(n); return n; }
-// A wobbly chain of spring joints from (x0,y0) to (x1,y1).
-function chain(x0, y0, x1, y1, segs, wob, r, first) {
-  const nx = -(y1 - y0), ny = x1 - x0, L = Math.hypot(nx, ny) || 1;
+// A chain of spring joints from node `first` to (x1,y1), straight segments with a little jitter.
+function chain(x1, y1, segs, wob, r, first, lastKind = "joint") {
+  const x0 = first.rx, y0 = first.ry, nx = -(y1 - y0), ny = x1 - x0, L = Math.hypot(nx, ny) || 1;
   const pts = [first];
   for (let s = 1; s <= segs; s++) {
-    const f = s / segs, off = s < segs ? (r() - 0.5) * wob : (r() - 0.5) * wob * 0.4;
-    const n = addNode(x0 + (x1 - x0) * f + (nx / L) * off, y0 + (y1 - y0) * f + (ny / L) * off, { kind: "joint", r: 2.4 }, r);
+    const f = s / segs, off = s < segs ? (r() - 0.5) * wob : 0;
+    const n = addNode(x0 + (x1 - x0) * f + (nx / L) * off, y0 + (y1 - y0) * f + (ny / L) * off, { kind: s === segs ? lastKind : "joint", r: 2.6 }, r);
     LINKS.push({ a: pts[pts.length - 1], b: n, len: 0 });
     pts.push(n);
   }
   return pts;
 }
-function buildRoot(spec, hub, ang, len, r) {
+// One root, drawn like the old map's agents: a ringed hub off the brain, a fan of branches with
+// star joints and twigs. Its neurons ride on the branches; the data-backed ones light up.
+function buildRoot(spec, hub, ang, step, r) {
   const b = brain(spec.brain);
-  const base = addNode(hub.rx + Math.cos(ang) * (b.R + 4), hub.ry + Math.sin(ang) * (b.R + 4), { kind: "joint", r: 2, amp: 1 }, r);
-  LINKS.push({ a: hub, b: base, len: 0 });
-  const L = len * (0.86 + r() * 0.2);
-  const pts = chain(base.rx, base.ry, base.rx + Math.cos(ang) * L, base.ry + Math.sin(ang) * L, 4, 40, r, base);
-  const tip = pts[pts.length - 1];
-  tip.kind = "tip";
-  const root = { ...spec, hub, pts, ang, twigs: [] };
-  // two dim side twigs per root, for the root look
-  for (let t = 0; t < 2; t++) {
-    const from = pts[1 + Math.floor(r() * (pts.length - 2))];
-    const td = ang + (t ? 1 : -1) * (0.55 + r() * 0.45), tl = 26 + r() * 26;
-    const n = addNode(from.rx + Math.cos(td) * tl, from.ry + Math.sin(td) * tl, { kind: "joint", r: 1.6 }, r);
-    LINKS.push({ a: from, b: n, len: 0, twig: true });
-    root.twigs.push([from, n]);
-    for (let k = 0; k < 3; k++) NEURONS.push({ root, seg: null, twig: [from, n], t: 0.35 + k * 0.28, off: (r() - 0.5) * 6, item: null, ph: r() * 6.28 });
+  const rh = addNode(hub.rx + Math.cos(ang) * (b.R + b.hub), hub.ry + Math.sin(ang) * (b.R + b.hub), { kind: "rhub", r: b.R > 120 ? 16 : 13, amp: 2.5 }, r);
+  LINKS.push({ a: hub, b: rh, len: 0 });
+  const nb = b.nb, spread = step * 0.82, branches = [], twigs = [];
+  for (let j = 0; j < nb; j++) {
+    const dir = ang + (nb > 1 ? (j / (nb - 1) - 0.5) * spread : 0);
+    const L = (j % 2 ? 0.8 : 1) * b.len - r() * 18;
+    const pts = chain(rh.rx + Math.cos(dir) * L, rh.ry + Math.sin(dir) * L, 3 + Math.floor(r() * 2), 30, r, rh, "tip");
+    if (r() < 0.6) {
+      const from = pts[1 + Math.floor(r() * (pts.length - 2))], td = dir + (r() < 0.5 ? -1 : 1) * (0.6 + r() * 0.5), tl = 22 + r() * 16;
+      const n = addNode(from.rx + Math.cos(td) * tl, from.ry + Math.sin(td) * tl, { kind: "joint", r: 2 }, r);
+      LINKS.push({ a: from, b: n, len: 0 });
+      twigs.push([from, n]);
+    }
+    branches.push(pts);
   }
-  // the root's neurons: many small dim ones, the data-backed ones lit, spread along the root
-  const lit = spec.items.length, n = Math.min(46, Math.max(12, lit + 5));
-  const litAt = new Set(Array.from({ length: Math.min(lit, n) }, (_, j) => Math.floor(((j + 0.5) * n) / Math.min(lit, n))));
+  const root = { ...spec, hub, rhub: rh, branches, twigs, ang, pts: branches[Math.floor(nb / 2)] };
+  // up to 46 lit per root, always with some dim neurons left; extra items are listed in the root panel
+  const lit = spec.items.length, n = Math.min(52, Math.max(12, lit + 5)), shown = Math.min(lit, 46), per = Math.ceil(n / nb);
+  const litAt = new Set(Array.from({ length: shown }, (_, j) => Math.floor(((j + 0.5) * n) / shown)));
   let j = 0;
   for (let k = 0; k < n; k++) {
-    const u = 0.06 + 0.92 * ((k + 0.5) / n), segs = pts.length - 1, sf = Math.min(u * segs, segs - 1e-6);
-    const side = k % 2 ? 1 : -1, spread = n > 22 ? 9 : 6;
-    NEURONS.push({ root, seg: Math.floor(sf), t: sf - Math.floor(sf), off: side * (3 + r() * spread), item: litAt.has(k) ? spec.items[j++] : null, ph: r() * 6.28 });
+    const bi = k % nb, idx = Math.floor(k / nb), pts = branches[bi], segs = pts.length - 1;
+    const u = 0.16 + 0.8 * ((idx + 0.5) / per), sf = Math.min(u * segs, segs - 1e-6);
+    NEURONS.push({ root, br: bi, seg: Math.floor(sf), t: sf - Math.floor(sf), off: (k % 2 ? 1 : -1) * (2 + r() * 4), item: litAt.has(k) ? spec.items[j++] : null, ph: r() * 6.28 });
   }
-  root.shown = Math.min(lit, n);
+  root.shown = shown;
+  root.labelW = [rh.rx + Math.cos(ang) * (b.len + 30), rh.ry + Math.sin(ang) * (b.len + 30)];
   ROOTS.push(root);
   return root;
 }
@@ -345,25 +355,23 @@ function buildMap() {
   for (const b of BRAINS) {
     if (!b.arc) continue;
     const mine = specs.filter((s) => s.brain === b.id), [c, spread] = b.arc;
-    mine.forEach((s, i) => {
-      const deg = c + (mine.length > 1 ? (i / (mine.length - 1) - 0.5) * spread : 0);
-      buildRoot(s, hubs[b.id], (deg * Math.PI) / 180, b.len * (i % 2 ? 0.86 : 1), r);
-    });
+    const step = mine.length > 1 ? (spread / (mine.length - 1)) * (Math.PI / 180) : 1;
+    mine.forEach((s, i) => buildRoot(s, hubs[b.id], ((c + (mine.length > 1 ? (i / (mine.length - 1) - 0.5) * spread : 0)) * Math.PI) / 180, step, r));
   }
   // the visible link YTAS -> JARVIS, and JARVIS's two roots to his children
   const link = (from, to, items, color, label, fmt) => {
     const a = brain(from), z = brain(to), ang = Math.atan2(z.y - a.y, z.x - a.x);
-    const s = addNode(a.x + Math.cos(ang) * (a.R + 4), a.y + Math.sin(ang) * (a.R + 4), { kind: "joint", r: 2, amp: 1 }, r);
-    LINKS.push({ a: hubs[from], b: s, len: 0 });
-    const pts = chain(s.rx, s.ry, z.x - Math.cos(ang) * (z.R + 4), z.y - Math.sin(ang) * (z.R + 4), 5, 30, r, s);
+    const s0 = addNode(a.x + Math.cos(ang) * (a.R + 4), a.y + Math.sin(ang) * (a.R + 4), { kind: "joint", r: 2.6, amp: 1 }, r);
+    LINKS.push({ a: hubs[from], b: s0, len: 0 });
+    const pts = chain(z.x - Math.cos(ang) * (z.R + 4), z.y - Math.sin(ang) * (z.R + 4), 5, 26, r, s0);
     LINKS.push({ a: pts[pts.length - 1], b: hubs[to], len: 0 });
-    const root = { brain: from, key: `${from}>${to}`, name: label, label, color, items, hub: hubs[from], pts, ang, twigs: [], link: true, fmt };
+    const root = { brain: from, key: `${from}>${to}`, name: label, label, color, items, hub: hubs[from], branches: [pts], pts, twigs: [], ang, link: true, fmt };
     const n = Math.max(10, items.length + 4);
     const litAt = new Set(Array.from({ length: items.length }, (_, j) => Math.floor(((j + 0.5) * n) / items.length)));
     let j = 0;
     for (let k = 0; k < n; k++) {
       const u = 0.05 + 0.9 * ((k + 0.5) / n), segs = pts.length - 1, sf = Math.min(u * segs, segs - 1e-6);
-      NEURONS.push({ root, seg: Math.floor(sf), t: sf - Math.floor(sf), off: (k % 2 ? 1 : -1) * (3 + r() * 4), item: litAt.has(k) ? items[j++] : null, ph: r() * 6.28 });
+      NEURONS.push({ root, br: 0, seg: Math.floor(sf), t: sf - Math.floor(sf), off: (k % 2 ? 1 : -1) * (3 + r() * 4), item: litAt.has(k) ? items[j++] : null, ph: r() * 6.28 });
     }
     root.shown = items.length;
     ROOTS.push(root);
@@ -373,11 +381,16 @@ function buildMap() {
   link("jarvis", "shorts", transitItems("shorts"), "#7ff0c8", "to SHORTS", "shorts");
   // whole-script fixes ("all") ring the child brain
   for (const id of ["videos", "shorts"]) {
-    const items = (B && B[id].roots.all) || [], b = brain(id), n = Math.max(14, items.length + 6);
-    for (let k = 0; k < n; k++) HALOS.push({ hub: hubs[id], a: (k / n) * 6.283, rad: b.R + 13, item: k < items.length ? items[k] : null, ph: r() * 6.28,
+    const items = (B && B[id].roots.all) || [], b = brain(id), n = Math.max(16, items.length + 6);
+    for (let k = 0; k < n; k++) HALOS.push({ hub: hubs[id], a: (k / n) * 6.283, rad: b.R + 14, item: k < items.length ? items[k] : null, ph: r() * 6.28,
       root: { brain: id, key: "all", name: "Whole script", label: "Whole script", color: id === "videos" ? "#d39bff" : "#7ff0c8", items } });
   }
   LINKS.forEach((l) => (l.len = Math.hypot(l.b.rx - l.a.rx, l.b.ry - l.a.ry)));
+  // the map's extent: every node plus room for the root labels
+  const xs = [], ys = [];
+  NODES.forEach((n) => { xs.push(n.rx); ys.push(n.ry); });
+  ROOTS.forEach((rt) => { if (rt.labelW) { const right = Math.cos(rt.ang) > 0.25, left = Math.cos(rt.ang) < -0.25; const tw = (rt.brain === "ytas" ? 11 : 8.2) * (rt.brain === "ytas" ? rt.name : rt.label).length + 10; xs.push(rt.labelW[0] + (right ? tw : left ? -tw : 0)); ys.push(rt.labelW[1] + 24, rt.labelW[1] - 14); } });
+  BBOX = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
   const TINTS = ["255,255,255", "255,255,255", "205,220,255", "180,200,255", "255,236,214", "232,210,255"];
   STARS = Array.from({ length: 650 }, () => ({ x: r() * 2400 - 1200, y: r() * 1900 - 950, s: 0.35 + Math.pow(r(), 3) * 1.6, z: 0.2 + r() * 0.8, tw: r() * 6, tws: 0.6 + r() * 2, c: TINTS[Math.floor(r() * TINTS.length)] }));
   BRIGHT = Array.from({ length: 16 }, () => ({ x: r() * 2300 - 1150, y: r() * 1800 - 900, s: 1.4 + r() * 1.4, z: 0.5 + r() * 0.5, tw: r() * 6, c: TINTS[Math.floor(r() * TINTS.length)] }));
@@ -426,8 +439,7 @@ function step(dt) {
   }
 }
 function neuronW(n) {
-  if (n.twig) { const [a, b] = n.twig, nx = -(b.y - a.y), ny = b.x - a.x, L = Math.hypot(nx, ny) || 1; return [a.x + (b.x - a.x) * n.t + (nx / L) * n.off, a.y + (b.y - a.y) * n.t + (ny / L) * n.off]; }
-  const a = n.root.pts[n.seg], b = n.root.pts[n.seg + 1], nx = -(b.y - a.y), ny = b.x - a.x, L = Math.hypot(nx, ny) || 1;
+  const pts = n.root.branches[n.br], a = pts[n.seg], b = pts[n.seg + 1], nx = -(b.y - a.y), ny = b.x - a.x, L = Math.hypot(nx, ny) || 1;
   return [a.x + (b.x - a.x) * n.t + (nx / L) * n.off, a.y + (b.y - a.y) * n.t + (ny / L) * n.off];
 }
 const haloW = (h) => { const a = h.a + clock * 0.12; return [h.hub.x + Math.cos(a) * h.rad, h.hub.y + Math.sin(a) * h.rad]; };
@@ -438,11 +450,13 @@ function spawnPulse() {
   const pool = live.length ? live : ROOTS;
   const rt = pool[Math.floor(Math.random() * pool.length)];
   if (!rt) return;
+  const br = Math.floor(Math.random() * rt.branches.length);
   // YTAS roots carry findings into YTAS (tip -> brain); every other root carries them outward
-  PULSES.push({ rt, t: 0, inward: rt.brain === "ytas" && !rt.link, speed: 0.32 + Math.random() * 0.25, rgb: hexRgb(rt.color) });
+  PULSES.push({ rt, br, t: 0, inward: rt.brain === "ytas" && !rt.link, speed: 0.32 + Math.random() * 0.25, rgb: hexRgb(rt.color) });
 }
 function pulseW(p) {
-  const pts = p.rt.pts.map((n) => [n.x, n.y]);
+  const pts = p.rt.branches[p.br].map((n) => [n.x, n.y]);
+  if (p.rt.rhub) { const h = p.rt.hub, b = brain(p.rt.brain); pts.unshift([h.x + Math.cos(p.rt.ang) * b.R, h.y + Math.sin(p.rt.ang) * b.R]); }
   if (p.inward) pts.reverse();
   const segs = pts.length - 1, u = Math.min(p.t * segs, segs - 1e-6), i = Math.floor(u), f = u - i;
   return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f];
@@ -488,27 +502,60 @@ function drawBackground(g) {
   }
 }
 function drawRoots(g) {
-  const f = Math.max(0.7, S() * 1.3), hiRoot = hover && hover.root;
+  const f = Math.max(0.75, S() * 1.15), lw = Math.max(1, Math.min(2.2, S() * 1.6)), hiRoot = hover && hover.root;
+  g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
   for (const rt of ROOTS) {
-    const rgb = hexRgb(rt.color), live = rt.shown > 0 || rt.link, hi = rt === hiRoot;
-    const P = rt.pts.map((n) => toS(n.x, n.y));
-    const path = () => { g.beginPath(); g.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) { const mx = (P[i - 1][0] + P[i][0]) / 2, my = (P[i - 1][1] + P[i][1]) / 2; g.quadraticCurveTo(P[i - 1][0], P[i - 1][1], mx, my); } g.lineTo(P[P.length - 1][0], P[P.length - 1][1]); };
-    if (rt.link) g.setLineDash([2 * f, 5 * f]);
-    if (live) { g.strokeStyle = `rgba(${rgb},${hi ? 0.24 : 0.12})`; g.lineWidth = Math.max(3, 6 * S()); path(); g.stroke(); }
-    g.strokeStyle = `rgba(255,255,255,${(live ? 0.42 : 0.24) + (hi ? 0.3 : 0)})`; g.lineWidth = Math.max(0.8, Math.min(2.2, 1.6 * S()));
-    path(); g.stroke();
+    if (!rt.rhub) continue;
+    const b = brain(rt.brain), [x1, y1] = toS(rt.hub.x + Math.cos(rt.ang) * b.R * 0.98, rt.hub.y + Math.sin(rt.ang) * b.R * 0.98), [x2, y2] = toS(rt.rhub.x, rt.rhub.y);
+    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+  }
+  g.setLineDash([]);
+  for (const rt of ROOTS) {
+    const rgb = hexRgb(rt.color), live = rt.items.length > 0 || rt.link, hi = rt === hiRoot;
+    if (rt.link) g.setLineDash([3, 6]);
+    for (const pts of rt.branches) for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], c = pts[i], [x1, y1] = toS(a.x, a.y), [x2, y2] = toS(c.x, c.y);
+      const stretch = Math.max(0, Math.hypot(c.x - a.x, c.y - a.y) / (Math.hypot(c.rx - a.rx, c.ry - a.ry) || 1) - 1);
+      let alpha = (live ? 0.55 : 0.3) + (hi ? 0.3 : 0);
+      if (live) { g.strokeStyle = `rgba(${rgb},${0.1 + (hi ? 0.12 : 0)})`; g.lineWidth = lw * 4; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
+      g.strokeStyle = stretch > 0.05 ? `rgba(${rgb},${Math.min(1, alpha + stretch)})` : `rgba(255,255,255,${Math.min(0.95, alpha)})`;
+      g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    }
     g.setLineDash([]);
-    for (const [a, b] of rt.twigs) {
-      const [x1, y1] = toS(a.x, a.y), [x2, y2] = toS(b.x, b.y);
-      g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = Math.max(0.6, S()); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+    for (const [a, c] of rt.twigs) {
+      const [x1, y1] = toS(a.x, a.y), [x2, y2] = toS(c.x, c.y);
+      g.strokeStyle = `rgba(255,255,255,${live ? 0.3 : 0.18})`; g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
     }
   }
   for (const p of PULSES) {
-    const [wx, wy] = pulseW(p), [x, y] = toS(wx, wy), fade = Math.sin(Math.PI * Math.min(1, p.t)), rr = 8 * Math.max(0.8, S() * 1.4);
+    const [wx, wy] = pulseW(p), [x, y] = toS(wx, wy), fade = Math.sin(Math.PI * Math.min(1, p.t)), rr = 9 * Math.max(0.8, S() * 1.3);
     const grd = g.createRadialGradient(x, y, 0, x, y, rr);
     grd.addColorStop(0, `rgba(${p.rgb},${0.9 * fade})`); grd.addColorStop(1, `rgba(${p.rgb},0)`);
     g.fillStyle = grd; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
   }
+  // star joints and branch tips, as on the old map
+  for (const rt of ROOTS) {
+    const live = rt.items.length > 0 || rt.link;
+    for (const pts of rt.branches) for (const n of pts) {
+      if (n.kind === "rhub" || n.kind === "hub") continue;
+      const [x, y] = toS(n.x, n.y);
+      if (n.kind === "tip") { g.strokeStyle = `rgba(255,255,255,${live ? 0.5 : 0.35})`; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, 5 * f, 0, 6.283); g.stroke(); }
+      else { g.fillStyle = `rgba(255,255,255,${live ? 0.8 : 0.4})`; g.beginPath(); g.arc(x, y, 2.5 * f, 0, 6.283); g.fill(); }
+    }
+    for (const [, c] of rt.twigs) { const [x, y] = toS(c.x, c.y); g.fillStyle = `rgba(255,255,255,${live ? 0.7 : 0.35})`; g.beginPath(); g.arc(x, y, 2 * f, 0, 6.283); g.fill(); }
+  }
+}
+// The ringed hub at the base of each root: colour ring, its first letter, a wave while fixes pulse.
+function drawRootHub(g, rt) {
+  const h = rt.rhub, [x, y] = toS(h.x, h.y), pz = rt.items.some((i) => i.state === "pulse");
+  const rr = h.r * Math.max(0.85, S() * 1.15) * (hover && hover.root === rt ? 1.15 : 1);
+  const beat = pz ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 3.2)) : 1;
+  g.fillStyle = "rgba(24,26,60,.94)"; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
+  g.globalAlpha = rt.items.length ? beat : 0.55; g.strokeStyle = rt.color; g.lineWidth = 2.4; g.stroke(); g.globalAlpha = 1;
+  if (pz && !REDUCED) { const w = (clock * 0.8) % 1; g.strokeStyle = `rgba(${hexRgb(rt.color)},${(1 - w) * 0.5})`; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, rr + w * 22 * Math.max(0.8, S() * 1.4), 0, 6.283); g.stroke(); }
+  g.fillStyle = rt.color; g.font = `600 ${Math.round(Math.max(11, rr * 0.95))}px Cinzel, serif`;
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(rt.brain === "ytas" ? rt.name[0] : rt.key, x, y + 1);
+  h.sx = x; h.sy = y; h.sr = rr;
 }
 function drawNeuron(g, x, y, n, rootColor) {
   const f = Math.max(0.65, S() * 1.25);
@@ -552,21 +599,24 @@ function drawCore(g, b, hub) {
 }
 function rootLabel(g, rt) {
   if (rt.link) return;
-  const tip = rt.pts[rt.pts.length - 1], [x, y] = toS(tip.x + Math.cos(rt.ang) * 22, tip.y + Math.sin(rt.ang) * 22);
-  const size = Math.max(9, Math.min(15, (rt.brain === "ytas" ? 15 : 12.5) * S() * 1.25));
+  const [x, y] = toS(rt.labelW[0], rt.labelW[1]);
+  const size = Math.max(10, Math.min(22, (rt.brain === "ytas" ? 19 : 14) * S() * 1.1));
   const right = Math.cos(rt.ang) > 0.25, left = Math.cos(rt.ang) < -0.25;
   g.textAlign = right ? "left" : left ? "right" : "center"; g.textBaseline = "middle";
+  const text = rt.brain === "ytas" ? rt.name.toUpperCase() : rt.key + " · " + rt.name.toUpperCase();
+  const pz = rt.items.filter((i) => i.state === "pulse").length;
+  const sub = `${rt.brain === "ytas" ? "/" + rt.label + " · " : ""}${rt.items.length} lit${pz ? ` · ${pz} pulsing` : ""}${rt.items.length > rt.shown ? ` (+${rt.items.length - rt.shown} in list)` : ""}`;
   g.font = `600 ${Math.round(size)}px Cinzel, serif`;
-  const text = rt.brain === "ytas" ? rt.label : rt.key + " · " + rt.name.toUpperCase();
-  const count = `${rt.items.length} lit${rt.items.length > rt.shown ? ` (+${rt.items.length - rt.shown} in list)` : ""}`;
-  g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(12,12,34,.9)";
+  if ("letterSpacing" in g) g.letterSpacing = `${(size * 0.12).toFixed(1)}px`;
   g.globalAlpha = rt.items.length ? 1 : 0.6;
-  g.strokeText(text, x, y); g.fillStyle = rt.items.length ? "#f2f0ff" : "#a9acd6"; g.fillText(text, x, y);
-  g.font = `${Math.round(Math.max(8, size * 0.72))}px "Space Grotesk", sans-serif`;
-  g.lineWidth = 3; g.strokeText(count, x, y + size * 0.95); g.fillStyle = rt.color; g.fillText(count, x, y + size * 0.95);
-  g.globalAlpha = 1;
+  g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(12,12,34,.9)";
+  g.strokeText(text, x, y); g.fillStyle = "#f2f0ff"; g.fillText(text, x, y);
   const w = g.measureText(text).width;
-  rt.lx = right ? x + w / 2 : left ? x - w / 2 : x; rt.ly = y + size * 0.4; rt.lw = Math.max(w, 60) / 2 + 6;
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+  g.font = `${Math.round(Math.max(9, size * 0.52))}px "Space Grotesk", sans-serif`;
+  g.lineWidth = 3; g.strokeText(sub, x, y + size * 0.9); g.fillStyle = rt.items.length ? rt.color : "#a9acd6"; g.fillText(sub, x, y + size * 0.9);
+  g.globalAlpha = 1;
+  rt.lx = right ? x + w / 2 : left ? x - w / 2 : x; rt.ly = y + size * 0.35; rt.lw = Math.max(w, 60) / 2 + 6;
 }
 function draw() {
   const g = MAP.g;
@@ -576,6 +626,7 @@ function draw() {
   drawRoots(g);
   for (const n of NEURONS) { const [wx, wy] = neuronW(n), [x, y] = toS(wx, wy); n.sx = x; n.sy = y; drawNeuron(g, x, y, n, n.root.color); }
   for (const h of HALOS) { const [wx, wy] = haloW(h), [x, y] = toS(wx, wy); h.sx = x; h.sy = y; if (h.item || !REDUCED) drawNeuron(g, x, y, h, h.root.color); }
+  ROOTS.forEach((rt) => rt.rhub && drawRootHub(g, rt));
   NODES.filter((n) => n.kind === "hub").forEach((h) => drawCore(g, h.brain, h));
   ROOTS.forEach((rt) => rootLabel(g, rt));
   // the one-way arrow on the YTAS -> JARVIS link
@@ -612,10 +663,11 @@ function frame(now) {
 function setFocus(i, instant) {
   focus = ((i % FOCUS.length) + FOCUS.length) % FOCUS.length;
   const f = FOCUS[focus];
-  if (!f.id) { camT.x = 60; camT.y = 0; camT.z = 1; }
-  else { const z = W < 640 ? (f.R > 80 ? 2.3 : 2.9) : f.R > 80 ? 1.55 : 1.9; camT.x = f.x + (f.id === "ytas" ? -110 : f.id === "jarvis" ? 0 : 70); camT.y = f.y + (f.id === "ytas" ? 40 : 0); camT.z = z; }
+  if (!f.id) { camT.x = (BBOX.x0 + BBOX.x1) / 2; camT.y = (BBOX.y0 + BBOX.y1) / 2; camT.z = 1; }
+  else { camT.x = f.x + (f.id === "ytas" ? -60 : f.id === "jarvis" ? 60 : 90); camT.y = f.y; camT.z = W < 640 ? (f.R > 120 ? 2.1 : 2.6) : f.R > 120 ? 1.7 : 2.1; clampCam(); }
   if (instant) Object.assign(cam, camT);
   $("focusName").textContent = f.name;
+  MAP.cv.classList.toggle("locked", !f.id);
 }
 $("rotL").onclick = () => setFocus(focus - 1);
 $("rotR").onclick = () => setFocus(focus + 1);
@@ -625,6 +677,7 @@ function pick(px, py) {
   let best = null, bestD = 14;
   for (const n of [...NEURONS, ...HALOS]) { if (!n.item || n.sx == null) continue; const d = Math.hypot(n.sx - px, n.sy - py); if (d < bestD) { bestD = d; best = { n, root: n.root }; } }
   if (best) return best;
+  for (const rt of ROOTS) if (rt.rhub && rt.rhub.sr && Math.hypot(rt.rhub.sx - px, rt.rhub.sy - py) < rt.rhub.sr + 4) return { label: rt, root: rt, node: rt.rhub };
   for (const h of NODES) if (h.kind === "hub" && h.sr && Math.hypot(h.sx - px, h.sy - py) < h.sr) return { hub: h };
   for (const rt of ROOTS) if (rt.lx != null && Math.abs(px - rt.lx) < rt.lw && Math.abs(py - rt.ly) < 16) return { label: rt, root: rt };
   for (const j of NODES) { if (j.kind !== "joint" && j.kind !== "tip") continue; const [x, y] = toS(j.x, j.y); if (Math.hypot(x - px, y - py) < 9) return { joint: j }; }
@@ -636,22 +689,22 @@ cv.addEventListener("pointerdown", (e) => {
   const [px, py] = local(e);
   pointers.set(e.pointerId, [px, py]);
   cv.setPointerCapture(e.pointerId);
-  if (pointers.size === 2) { const [a, b] = [...pointers.values()]; grab = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]), z0: camT.z, moved: true }; return; }
+  if (pointers.size === 2 && focus !== 0) { const [a, b] = [...pointers.values()]; grab = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]), z0: camT.z, moved: true }; return; }
   const p = pick(px, py);
-  if (p && (p.joint || p.hub)) grab = { kind: "node", node: p.joint || p.hub, hit: p, x: px, y: py, px, py, moved: false };
-  else grab = { kind: "pan", hit: p, x: px, y: py, cx: camT.x, cy: camT.y, moved: false };
+  if (p && (p.joint || p.hub || p.node)) grab = { kind: "node", node: p.joint || p.hub || p.node, hit: p, x: px, y: py, px, py, moved: false };
+  else grab = { kind: focus === 0 ? "none" : "pan", hit: p, x: px, y: py, cx: camT.x, cy: camT.y, moved: false };
   cv.classList.add("grabbing");
 });
 cv.addEventListener("pointermove", (e) => {
   const [px, py] = local(e);
   if (pointers.has(e.pointerId)) pointers.set(e.pointerId, [px, py]);
-  if (!grab) { const p = pick(px, py); hover = p; cv.style.cursor = p && (p.n || p.hub || p.label) ? "pointer" : "grab"; showTip(e, p); return; }
+  if (!grab) { const p = pick(px, py); hover = p; cv.style.cursor = p && (p.n || p.hub || p.label) ? "pointer" : p && p.joint ? "grab" : focus === 0 ? "default" : "grab"; showTip(e, p); return; }
   if (grab.kind === "pinch") { if (pointers.size === 2) { const [a, b] = [...pointers.values()]; camT.z = clampZ(grab.z0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / grab.d0); } return; }
   if (!grab.moved && Math.hypot(px - grab.x, py - grab.y) > 6) grab.moved = true;
   if (!grab.moved) return;
   $("tip").style.display = "none";
   if (grab.kind === "node") { grab.px = px; grab.py = py; }
-  else { camT.x = grab.cx - (px - grab.x) / S(); camT.y = grab.cy - (py - grab.y) / S(); cam.x = camT.x; cam.y = camT.y; }
+  else if (grab.kind === "pan") { camT.x = grab.cx - (px - grab.x) / S(); camT.y = grab.cy - (py - grab.y) / S(); clampCam(); cam.x = camT.x; cam.y = camT.y; }
 });
 const release = (e) => {
   pointers.delete(e.pointerId);
@@ -668,12 +721,13 @@ const release = (e) => {
 cv.addEventListener("pointerup", release);
 cv.addEventListener("pointercancel", release);
 cv.addEventListener("pointerleave", () => { if (!grab) { hover = null; $("tip").style.display = "none"; } });
-const clampZ = (z) => Math.max(0.6, Math.min(5, z));
+const clampZ = (z) => Math.max(1, Math.min(5, z));
 cv.addEventListener("wheel", (e) => {
   e.preventDefault();
+  if (focus === 0) return;  // the whole map stays fixed; zoom only on one brain
   const [px, py] = local(e), [wx, wy] = toW(px, py);
   const z = clampZ(camT.z * Math.exp(-e.deltaY * 0.0015));
-  camT.x = wx - (px - W / 2) / (SCALE * z); camT.y = wy - (py - H / 2) / (SCALE * z); camT.z = z;
+  camT.x = wx - (px - W / 2) / (SCALE * z); camT.y = wy - (py - H / 2) / (SCALE * z); camT.z = z; clampCam();
 }, { passive: false });
 addEventListener("keydown", (e) => { if (e.key === "ArrowRight") setFocus(focus + 1); if (e.key === "ArrowLeft") setFocus(focus - 1); });
 
@@ -780,6 +834,7 @@ function openHelp() {
   $("hForget").onclick = async () => { store.set("valora.brain", null); await idbSet("dir", null); B = null; DIR = null; setFolderBtn(false); buildMap(); renderAll(); closePanel(); toast("Brain data and folder removed from this browser."); };
 }
 $("moreBtn").onclick = openHelp;
+$("fullBtn").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch { toast("Full screen is not available in this browser."); } };
 function openSummary() {
   if (!B) { openHelp(); return; }
   const real = ROOTS.filter((r) => !r.link), allRoots = [...real, ...["videos", "shorts"].map((id) => ({ brain: id, key: "all", label: "Whole script", name: "Whole script", color: id === "videos" ? "#d39bff" : "#7ff0c8", items: B[id].roots.all || [] }))];
