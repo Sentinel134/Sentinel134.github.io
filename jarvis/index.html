@@ -1,131 +1,566 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jarvis Brain Map</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg1: #070818; --bg2: #141436; --ink: #f2f0ff; --muted: #a9acd6;
-  --line: rgba(255,255,255,.14); --panel: #23264a; --field: #1b1d3b; --accent: #c9b8ff;
-  --ok: #8ff0c0; --warn: #ffd479; --alert: #ff8f8f; --skip: #8d90b8;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body { font-family: 'Space Grotesk', system-ui, sans-serif; color: var(--ink); background: radial-gradient(ellipse at 50% 42%, var(--bg2), var(--bg1) 62%) fixed, var(--bg1); overflow: hidden; }
-button { font: inherit; cursor: pointer; color: inherit; }
-#map-wrap { position: relative; height: 100vh; height: 100dvh; min-height: 480px; }
-.topbar { position: fixed; top: 0; left: 0; right: 0; z-index: 15; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; pointer-events: none; }
-.topbar > * { pointer-events: auto; }
-.date { font-family: 'Cinzel', serif; font-size: .95rem; letter-spacing: .12em; color: var(--ink); text-shadow: 0 1px 8px rgba(0,0,0,.6); min-width: 0; }
-.icons { display: flex; gap: 8px; }
-.ibtn { width: 40px; height: 40px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: rgba(10,10,32,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid var(--line); color: var(--ink); padding: 0; transition: background .2s, transform .2s; }
-.ibtn:hover { background: rgba(201,184,255,.18); transform: translateY(-1px); }
-.ibtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.ibtn[hidden] { display: none; }
-.fab { position: fixed; bottom: 16px; z-index: 15; width: 46px; height: 46px; }
-#dashBtn { left: 16px; }
-.legend-wrap { position: fixed; right: 16px; bottom: 16px; z-index: 15; }
-.legend-wrap .fab { position: static; }
-.legend-pop { position: absolute; right: 0; bottom: 56px; width: 240px; background: rgba(16,17,44,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; font-size: .8rem; color: var(--muted); line-height: 2; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
-.legend-pop i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
-.legend-pop i.pulse { background: #fff; box-shadow: 0 0 0 2px var(--accent), 0 0 10px 3px rgba(201,184,255,.9); animation: blink 1.4s ease-in-out infinite; }
-.legend-pop i.glow { background: var(--accent); box-shadow: 0 0 8px 2px rgba(201,184,255,.45); }
-.legend-pop i.dim { background: rgba(255,255,255,.25); width: 5px; height: 5px; margin: 0 10px 0 2px; }
-@keyframes blink { 50% { box-shadow: 0 0 0 2px var(--accent), 0 0 3px 1px rgba(201,184,255,.3); } }
-#map { width: 100%; height: 100%; touch-action: none; user-select: none; display: block; cursor: grab; }
-#map.grabbing { cursor: grabbing; }
-#map.locked { cursor: default; }
-.map-ctrl { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; font-size: .75rem; letter-spacing: .14em; color: var(--muted); }
-.map-ctrl span { display: inline-block; width: 200px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.map-ctrl button { background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1rem; }
-#empty { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 140px); text-align: center; width: min(440px, 92vw); background: rgba(27,29,59,.88); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; z-index: 5; }
-#empty p { color: var(--muted); font-size: .9rem; margin: 8px 0 14px; }
-#tip { position: fixed; pointer-events: none; background: rgba(15,16,40,.94); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; font-size: .8rem; display: none; z-index: 30; max-width: 300px; line-height: 1.35; }
-#tip .st { display: inline-block; margin-top: 4px; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; }
-.card { background: rgba(20,22,50,.55); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
-h2.sec { font-family: 'Cinzel', serif; letter-spacing: .12em; font-size: 1rem; margin: 6px 0 10px; }
-.pill { display: inline-block; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; border: 1px solid var(--c, var(--accent)); color: var(--c, var(--accent)); border-radius: 99px; padding: 2px 10px; margin-right: 6px; }
-.muted { color: var(--muted); font-size: .86rem; }
-.item-row { display: grid; grid-template-columns: 12px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.item-row:last-child { border-bottom: 0; }
-.item-row b { font-weight: 600; }
-.item-row .d { color: var(--muted); font-size: .85rem; }
-.item-row[data-item] { cursor: pointer; }
-.dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 5px; background: var(--c); }
-.dot.pulse { background: #fff; box-shadow: 0 0 0 2px var(--c), 0 0 8px 2px var(--c); }
-.btn { background: #e9e3ff; color: #23264a; border: 0; border-radius: 8px; padding: 8px 14px; font-weight: 600; }
-.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
-.row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; align-items: center; }
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
-.kpi { background: rgba(20,22,50,.55); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
-.kpi b { display: block; font-size: 1.5rem; font-weight: 600; }
-.kpi span { font-size: .74rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
-#panel { position: fixed; left: 50%; top: 50%; z-index: 20; width: min(580px, calc(100vw - 32px)); max-height: min(78vh, 760px); overflow-y: auto; padding: 0 20px 24px;
-  background: rgba(18,19,48,.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(201,184,255,.22); border-radius: 18px;
-  box-shadow: 0 24px 70px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03) inset;
-  opacity: 0; pointer-events: none; transform: translate(-50%, -46%) scale(.94); transition: opacity .25s ease, transform .3s cubic-bezier(.2,.9,.3,1.2); }
-#panel.open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
-#panel.wide { width: min(1120px, calc(100vw - 32px)); max-height: 86vh; }
-#panel .p-top { position: sticky; top: 0; z-index: 2; margin: 0 -20px; padding: 14px 20px 10px; background: linear-gradient(rgba(18,19,48,.98) 70%, rgba(18,19,48,0)); }
-#panel h2 { font-family: 'Cinzel', serif; letter-spacing: .08em; font-size: 1.3rem; margin: 8px 0 4px; }
-#panel h3 { font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 18px 0 4px; font-weight: 500; }
-.p-top { display: flex; justify-content: space-between; align-items: center; }
-.x { background: rgba(255,255,255,.06); border: 1px solid var(--line); border-radius: 50%; width: 34px; height: 34px; font-size: 1.2rem; line-height: 1; color: var(--ink); }
-.x:hover { background: rgba(255,143,143,.18); }
-.banner { background: rgba(255,212,121,.14); border: 1px solid rgba(255,212,121,.4); color: var(--warn); border-radius: 8px; padding: 6px 12px; font-size: .8rem; }
-#toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%); background: rgba(15,16,40,.95); border: 1px solid var(--line); border-radius: 10px; padding: 9px 14px; font-size: .85rem; z-index: 40; display: none; max-width: 90vw; }
-#drop { position: fixed; inset: 0; background: rgba(20,20,50,.85); border: 3px dashed var(--accent); z-index: 50; display: none; align-items: center; justify-content: center; font-family: 'Cinzel', serif; font-size: 1.4rem; letter-spacing: .14em; }
-a { color: var(--ink); }
-@media (max-width: 640px) {
-  .topbar { padding: 10px 12px; }
-  .date { font-size: .8rem; }
-  .ibtn { width: 36px; height: 36px; }
-  .map-ctrl span { width: 150px; }
-  #empty { transform: translate(-50%, 90px); }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Jarvis Brain Map</title>
+  <!-- Tailwind CSS for crisp glassmorphic HUD & Controls -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Fonts: Cinzel for classical cosmic headers, JetBrains Mono for telemetry/HUD, Inter for UI -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #060812;
+      --bg-indigo: #0d1226;
+      --glass-bg: rgba(10, 14, 29, 0.78);
+      --glass-border: rgba(148, 163, 184, 0.16);
+      --accent-cyan: #38bdf8;
+      --accent-violet: #a855f7;
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 48%, #0d1226 0%, #080b19 55%, #050710 100%);
+      font-family: 'Inter', sans-serif;
+      color: #e2e8f0;
+    }
+
+    #cosmicCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #cosmicCanvas.dragging-brain {
+      cursor: grabbing;
+    }
+
+    #cosmicCanvas.hovering-brain {
+      cursor: grab;
+    }
+
+    #cosmicCanvas.hovering-tip {
+      cursor: pointer;
+    }
+
+    .font-cosmic {
+      font-family: 'Cinzel', Georgia, serif;
+    }
+
+    .font-mono-tech {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Glassmorphic Panel & HUD Buttons */
+    .glass-panel {
+      background: var(--glass-bg);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .hud-circle-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 9999px;
+      background: rgba(12, 16, 33, 0.72);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      color: rgba(226, 232, 240, 0.85);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+
+    .hud-circle-btn:hover {
+      background: rgba(30, 41, 75, 0.85);
+      border-color: rgba(56, 189, 248, 0.5);
+      color: #ffffff;
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.22);
+    }
+
+    .hud-circle-btn:active {
+      transform: scale(0.95);
+    }
+
+    .hud-circle-btn.active {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: rgba(56, 189, 248, 0.65);
+      color: #38bdf8;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.28);
+    }
+
+    /* Custom Precision Range Sliders */
+    input[type="range"].cosmic-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.18);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"].cosmic-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #e0f2fe;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.75);
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input[type="range"].cosmic-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.95);
+    }
+
+    input[type="range"].cosmic-slider::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #e0f2fe;
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.75);
+      cursor: pointer;
+    }
+
+    /* Custom Thin Scrollbar for Controls Drawer */
+    .drawer-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .drawer-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .drawer-scroll::-webkit-scrollbar-thumb {
+      background: rgba(148, 163, 184, 0.22);
+      border-radius: 999px;
+    }
+    .drawer-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.45);
+    }
+
+    /* Drawer Transition */
+    #controlsDrawer {
+      transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    }
+    /* locked panel: controls visible but inert */
+    #controlsDrawer.locked input[type="range"].cosmic-slider { opacity: .45; cursor: not-allowed; }
+    #controlsDrawer.locked .preset-btn, #controlsDrawer.locked #btnResetRoots { opacity: .45; cursor: not-allowed; }
+    .lock-on { color: #fbbf24 !important; border-color: rgba(251,191,36,.55) !important; background: rgba(251,191,36,.12) !important; }
+    #tip { position: fixed; pointer-events: none; z-index: 60; display: none; max-width: 300px; padding: 7px 10px; border-radius: 10px; font-size: 12px; line-height: 1.35;
+      background: rgba(10,14,29,.94); border: 1px solid rgba(148,163,184,.22); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+    #tip .st { display: inline-block; margin-top: 4px; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+    .row-item { display: grid; grid-template-columns: 12px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(148,163,184,.12); }
+    .row-item:last-child { border-bottom: 0; }
+    .row-item[data-open] { cursor: pointer; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; margin-top: 4px; background: var(--c); }
+    .dot.pulse { background: #fff; box-shadow: 0 0 0 2px var(--c), 0 0 8px 2px var(--c); }
+    #drop { position: fixed; inset: 0; z-index: 70; display: none; align-items: center; justify-content: center; background: rgba(6,8,18,.85);
+      border: 3px dashed #38bdf8; font-family: 'Cinzel', serif; font-size: 1.3rem; letter-spacing: .14em; color: #e2e8f0; }
+    #controlsDrawer.collapsed {
+      transform: translateX(calc(100% + 24px));
+      opacity: 0;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-<div class="topbar">
-  <div class="date" id="tagline">No brain data loaded</div>
-  <div class="icons">
-    <button class="ibtn" id="folderBtn" hidden title="Connect brain data folder" aria-label="Connect brain data folder"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.34 5.66"/><path d="M20 4v7h-7"/></svg></button>
-    <button class="ibtn" id="loadBtn" title="Load brain.json" aria-label="Load brain.json"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg></button>
-    <button class="ibtn" id="fullBtn" title="Full screen" aria-label="Full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-    <button class="ibtn" id="moreBtn" title="Help" aria-label="Help"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></svg></button>
-  </div>
-  <input type="file" id="file" accept=".json,application/json" hidden>
-</div>
-<button class="ibtn fab" id="dashBtn" title="Summary" aria-label="Summary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 15.5h6M9 9h2"/></svg></button>
-<div class="legend-wrap" id="legendWrap">
-  <div class="legend-pop" id="legendPop" hidden>
-    <div><i class="pulse"></i>Fix still needed / not used yet</div>
-    <div><i class="glow"></i>Finding, or fix applied / used</div>
-    <div><i class="dim"></i>No data on this neuron</div>
-  </div>
-  <button class="ibtn fab" id="infoBtn" title="Legend" aria-label="Legend" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><circle cx="12" cy="7.8" r=".7" fill="currentColor"/></svg></button>
-</div>
 
-<main id="map-wrap">
-  <canvas id="map" aria-label="Brain map: YTAS and JARVIS, with JARVIS's children SHORTS and VIDEOS. Lit neurons are real findings and fixes. Drag to pan, scroll to zoom, hover a lit neuron for details."></canvas>
-  <div id="empty">
-    <p>The 6:00 AM YTAS run writes <b>my-video\web\data\brain.json</b> on your laptop. Connect that folder once, or load the file. It stays in your browser.</p>
-    <div class="row" style="justify-content:center"><button class="btn" id="emptyFolder" hidden>Connect folder</button><button class="btn" id="emptyLoad">Load brain.json</button><button class="btn ghost" id="emptySample">View sample</button></div>
+  <!-- Fullscreen 60fps Cosmic Neural Canvas -->
+  <canvas id="cosmicCanvas"></canvas>
+
+  <!-- TOP-LEFT HUD: Date & Sample Identifier -->
+  <div class="fixed top-4 left-5 z-20 pointer-events-none flex items-center gap-3">
+    <span id="dateLabel" class="font-mono-tech text-xs sm:text-sm tracking-wider text-slate-300/85 drop-shadow">No brain data loaded</span>
+    <span id="zoomBadge" class="hidden sm:inline-block font-mono-tech text-[11px] px-2 py-0.5 rounded-full bg-slate-900/60 border border-slate-700/40 text-slate-400">
+      100%
+    </span>
   </div>
-  <div class="map-ctrl"><button id="rotL" aria-label="Previous brain">‹</button><span id="focusName"></span><button id="rotR" aria-label="Next brain">›</button></div>
-</main>
 
-<aside id="panel"></aside>
-<div id="tip"></div>
-<div id="toast"></div>
-<div id="drop">DROP BRAIN.JSON</div>
+  <!-- TOP-RIGHT HUD: Action Buttons -->
+  <div class="fixed top-4 right-4 sm:right-5 z-30 flex items-center gap-2 sm:gap-2.5">
+    <!-- Toggle Live Adjustment Sliders Panel -->
+    <button id="btnToggleControls" class="hud-circle-btn" title="Toggle Live Adjustment Sliders">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="4" y1="21" x2="4" y2="14"></line>
+        <line x1="4" y1="10" x2="4" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12" y2="3"></line>
+        <line x1="20" y1="21" x2="20" y2="16"></line>
+        <line x1="20" y1="12" x2="20" y2="3"></line>
+        <line x1="1" y1="14" x2="7" y2="14"></line>
+        <line x1="9" y1="8" x2="15" y2="8"></line>
+        <line x1="17" y1="16" x2="23" y2="16"></line>
+      </svg>
+    </button>
 
-<script type="application/json" id="sample">
+    <!-- Lock / unlock the layout -->
+    <button id="btnLockTop" class="hud-circle-btn" title="Unlock layout to edit" aria-label="Unlock layout to edit">
+      <svg class="w-4 h-4 lock-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+      <svg class="w-4 h-4 lock-open hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path></svg>
+    </button>
+
+    <!-- Connect / refresh the brain data folder -->
+    <button id="btnFolder" class="hud-circle-btn hidden" title="Connect brain data folder" aria-label="Connect brain data folder">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"></path>
+        <path d="M21 3v5h-5"></path>
+      </svg>
+    </button>
+
+    <!-- Load brain.json -->
+    <button id="btnLoad" class="hud-circle-btn" title="Load brain.json" aria-label="Load brain.json">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </svg>
+    </button>
+    <input type="file" id="file" accept=".json,application/json" class="hidden">
+
+    <!-- Fullscreen Toggle -->
+    <button id="btnFullscreen" class="hud-circle-btn" title="Toggle Fullscreen">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+      </svg>
+    </button>
+
+    <!-- Help -->
+    <button id="btnHelp" class="hud-circle-btn" title="Help" aria-label="Help">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- FLOATING GLASSMORPHIC ADJUSTMENT SLIDING BAR PANEL -->
+  <aside id="controlsDrawer" class="collapsed locked glass-panel fixed top-16 right-4 sm:right-5 z-20 w-[calc(100vw-2rem)] sm:w-[340px] max-h-[calc(100vh-8.5rem)] rounded-2xl flex flex-col overflow-hidden">
+    <!-- Panel Header -->
+    <div class="px-4 py-3 border-b border-slate-700/40 flex items-center justify-between bg-slate-900/40">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-sky-400 shadow-[0_0_8px_#38bdf8]"></span>
+        <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-200">Layout &amp; Distance Controls</h2>
+      </div>
+      <div class="flex items-center gap-1">
+      <button id="btnLockPanel" class="flex items-center gap-1 px-2 py-1 rounded-lg border text-[10px] font-semibold uppercase tracking-wider transition-colors" title="Unlock layout to edit">
+        <svg class="w-3.5 h-3.5 lock-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+        <svg class="w-3.5 h-3.5 lock-open hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 7.5-1.9"></path></svg>
+        <span id="lockText">Locked</span>
+      </button>
+      <button id="btnCloseDrawer" class="text-slate-400 hover:text-white p-1 rounded-lg transition-colors" title="Collapse Panel">
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+      </div>
+    </div>
+    <p id="lockNote" class="px-4 pt-2 text-[10px] text-amber-300/90">Locked: unlock to change the layout. Your settings are saved in this browser.</p>
+
+    <!-- Scrollable Controls Body -->
+    <div class="p-4 space-y-4 overflow-y-auto drawer-scroll text-xs">
+
+      <!-- Quick Layout Presets -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="text-[11px] font-medium uppercase tracking-wider text-slate-400">Layout Presets</span>
+          <span id="activePresetLabel" class="font-mono-tech text-[10px] text-sky-400">Compact</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
+          <button data-preset="compact" class="preset-btn py-1.5 px-2 rounded-lg font-medium text-[11px] bg-sky-500/20 text-sky-300 border border-sky-400/40 transition-all">
+            Compact
+          </button>
+          <button data-preset="balanced" class="preset-btn py-1.5 px-2 rounded-lg font-medium text-[11px] text-slate-400 hover:text-slate-200 border border-transparent transition-all">
+            Balanced
+          </button>
+          <button data-preset="wide" class="preset-btn py-1.5 px-2 rounded-lg font-medium text-[11px] text-slate-400 hover:text-slate-200 border border-transparent transition-all">
+            Wide
+          </button>
+        </div>
+      </div>
+
+      <!-- Global Brain Distance & Spread Section -->
+      <div class="p-3 rounded-xl bg-slate-900/45 border border-slate-700/35 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-sky-300">Brain Distance &amp; Spread</span>
+          <span id="liveBridgeDistBadge" class="font-mono-tech text-[10px] text-slate-400" title="YTAS to JARVIS Distance">287px</span>
+        </div>
+
+        <!-- Global Brain Spread Slider -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderGlobalSpread" class="text-slate-300">Global Brain Spread</label>
+            <span id="valGlobalSpread" class="font-mono-tech text-sky-300 font-medium">1.00x</span>
+          </div>
+          <input id="sliderGlobalSpread" type="range" min="0.50" max="2.20" step="0.01" value="1.00" class="cosmic-slider" />
+          <p class="text-[10px] text-slate-400/90 leading-tight">Slide to expand or contract spacing between all 4 brains live.</p>
+        </div>
+
+        <!-- Brain Selector Tabs -->
+        <div class="pt-1 border-t border-slate-800/70">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[10px] uppercase tracking-wider text-slate-400">Selected Brain Coordinates</span>
+            <span class="text-[10px] text-slate-400 italic">or drag on canvas</span>
+          </div>
+          <div class="grid grid-cols-4 gap-1 bg-slate-950/65 p-1 rounded-xl border border-slate-800/80 mb-2.5">
+            <button data-brain-tab="YTAS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold bg-sky-500/25 text-sky-300 border border-sky-400/40 transition-all">
+              YTAS
+            </button>
+            <button data-brain-tab="JARVIS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">
+              JARVIS
+            </button>
+            <button data-brain-tab="VIDEOS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">
+              VIDEOS
+            </button>
+            <button data-brain-tab="SHORTS" class="brain-tab-btn py-1 rounded-lg font-mono-tech text-[10px] font-semibold text-slate-400 hover:text-white border border-transparent transition-all">
+              SHORTS
+            </button>
+          </div>
+
+          <!-- Selected Brain X Position -->
+          <div class="space-y-1 mb-2">
+            <div class="flex justify-between items-center">
+              <label for="sliderBrainX" class="text-slate-300"><span id="lblBrainNameX" class="font-mono-tech text-sky-300">YTAS</span> X Position</label>
+              <span id="valBrainX" class="font-mono-tech text-slate-200">-275 px</span>
+            </div>
+            <input id="sliderBrainX" type="range" min="-950" max="950" step="1" value="-275" class="cosmic-slider" />
+          </div>
+
+          <!-- Selected Brain Y Position -->
+          <div class="space-y-1 mb-2">
+            <div class="flex justify-between items-center">
+              <label for="sliderBrainY" class="text-slate-300"><span id="lblBrainNameY" class="font-mono-tech text-sky-300">YTAS</span> Y Position</label>
+              <span id="valBrainY" class="font-mono-tech text-slate-200">5 px</span>
+            </div>
+            <input id="sliderBrainY" type="range" min="-650" max="650" step="1" value="5" class="cosmic-slider" />
+          </div>
+
+          <!-- Selected Brain Scale / Root Reach Multiplier -->
+          <div class="space-y-1">
+            <div class="flex justify-between items-center">
+              <label for="sliderBrainScale" class="text-slate-300"><span id="lblBrainNameScale" class="font-mono-tech text-sky-300">YTAS</span> Scale / Reach</label>
+              <span id="valBrainScale" class="font-mono-tech text-slate-200">1.00x</span>
+            </div>
+            <input id="sliderBrainScale" type="range" min="0.60" max="1.60" step="0.02" value="1.00" class="cosmic-slider" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Root Geometry Controls Section -->
+      <div class="p-3 rounded-xl bg-slate-900/45 border border-slate-700/35 space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-purple-300">Dendritic Root Geometry</span>
+          <button id="btnResetRoots" class="text-[10px] text-slate-400 hover:text-sky-300 underline">Reset Roots</button>
+        </div>
+
+        <!-- Roots Per Node Count (Default 7) -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderRootsPerNode" class="text-slate-300">Roots per Node</label>
+            <span id="valRootsPerNode" class="font-mono-tech text-purple-300 font-semibold">7 roots</span>
+          </div>
+          <input id="sliderRootsPerNode" type="range" min="4" max="10" step="1" value="7" class="cosmic-slider" />
+        </div>
+
+        <!-- Inner Node Ring Radius -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderRingRadius" class="text-slate-300">Inner Node Ring Radius</label>
+            <span id="valRingRadius" class="font-mono-tech text-purple-300">68 px</span>
+          </div>
+          <input id="sliderRingRadius" type="range" min="35" max="140" step="1" value="68" class="cosmic-slider" />
+        </div>
+
+        <!-- Root Branch Length (Reach) -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderRootLength" class="text-slate-300">Root Branch Length</label>
+            <span id="valRootLength" class="font-mono-tech text-purple-300">76 px</span>
+          </div>
+          <input id="sliderRootLength" type="range" min="30" max="180" step="1" value="76" class="cosmic-slider" />
+        </div>
+
+        <!-- Root Fan Spread Angle -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderFanSpread" class="text-slate-300">Root Fan Spread Angle</label>
+            <span id="valFanSpread" class="font-mono-tech text-purple-300">38&deg;</span>
+          </div>
+          <input id="sliderFanSpread" type="range" min="10" max="75" step="1" value="38" class="cosmic-slider" />
+        </div>
+
+        <!-- Label Offset Distance -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderLabelOffset" class="text-slate-300">Label Offset Distance</label>
+            <span id="valLabelOffset" class="font-mono-tech text-purple-300">20 px</span>
+          </div>
+          <input id="sliderLabelOffset" type="range" min="8" max="80" step="1" value="20" class="cosmic-slider" />
+        </div>
+
+        <!-- Root Organic Sinuosity / Curve -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center">
+            <label for="sliderOrganicCurve" class="text-slate-300">Root Organic Sinuosity</label>
+            <span id="valOrganicCurve" class="font-mono-tech text-purple-300">58%</span>
+          </div>
+          <input id="sliderOrganicCurve" type="range" min="0" max="100" step="1" value="58" class="cosmic-slider" />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-2">
+        <button id="btnCopyLayout" class="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/35 text-sky-300 text-[11px] font-medium transition-colors">Copy layout JSON</button>
+        <span class="text-[10px] text-slate-400">Layout only; your data is unchanged.</span>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- BOTTOM-LEFT HUD: Notes / Distance Matrix Inspector Button -->
+  <div class="fixed bottom-4 left-4 sm:left-5 z-20">
+    <button id="btnInspector" class="hud-circle-btn" title="Summary" aria-label="Summary">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- BOTTOM-CENTER HUD: Brain Focus Switcher (< ALL BRAINS >) -->
+  <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 sm:gap-6">
+    <button id="btnPrevBrain" class="hud-circle-btn" title="Previous Brain Focus">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <button id="btnFocusCycle" class="px-3 py-1.5 rounded-full text-xs sm:text-sm font-mono-tech tracking-[0.22em] text-slate-200 hover:text-white transition-colors uppercase min-w-[130px] text-center">
+      ALL BRAINS
+    </button>
+
+    <button id="btnNextBrain" class="hud-circle-btn" title="Next Brain Focus">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- BOTTOM-RIGHT HUD: Info Guide Button -->
+  <div class="fixed bottom-4 right-4 sm:right-5 z-20">
+    <button id="btnInfo" class="hud-circle-btn" title="Legend and controls" aria-label="Legend and controls">
+      <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="16" x2="12" y2="12"></line>
+        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+      </svg>
+    </button>
+  </div>
+
+  <!-- INSPECTOR MODAL: Live Coordinates & Inter-Brain Distance Matrix -->
+  <div id="modalInspector" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/50 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+          <h3 class="text-sm font-semibold tracking-wider uppercase text-slate-100">Summary</h3>
+        </div>
+        <button id="btnCloseInspector" class="text-slate-400 hover:text-white text-lg leading-none px-2">&times;</button>
+      </div>
+
+      <div id="inspectorContent" class="space-y-4 text-xs text-slate-300 max-h-[62vh] overflow-y-auto drawer-scroll pr-1">
+        <!-- Dynamically populated live telemetry -->
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-700/40">
+        <button id="btnCopyTelemetry" class="px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-medium transition-colors">
+          Copy layout JSON
+        </button>
+        <button id="btnCloseInspector2" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO MODAL: Controls & Interaction Guide -->
+  <div id="modalInfo" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-5 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-700/50 pb-3">
+        <h3 class="text-sm font-semibold tracking-wider uppercase text-slate-100">Legend &amp; Controls</h3>
+        <button id="btnCloseInfo" class="text-slate-400 hover:text-white text-lg leading-none px-2">&times;</button>
+      </div>
+
+      <div class="space-y-2 text-xs text-slate-300">
+        <div class="row-item"><i class="dot pulse" style="--c:#38bdf8"></i><div><b class="text-white">Bright pulse:</b> a fix still needed, or a fix JARVIS received and no script has used yet.</div></div>
+        <div class="row-item"><i class="dot" style="--c:#38bdf8"></i><div><b class="text-white">Lit tip:</b> a report finding, or a fix that was applied or used in a script.</div></div>
+        <div class="row-item"><i class="dot" style="--c:rgba(203,213,225,.45)"></i><div><b class="text-white">Hollow tip:</b> no data on that root yet.</div></div>
+      </div>
+      <ul class="space-y-2.5 text-xs text-slate-300 leading-relaxed">
+        <li class="flex items-start gap-2.5"><span class="text-sky-400 font-mono-tech font-bold">01</span><span><strong class="text-white">Hover or click a lit tip</strong> for the finding or fix, the video and the date. Click a skill circle to list everything on it.</span></li>
+        <li class="flex items-start gap-2.5"><span class="text-sky-400 font-mono-tech font-bold">02</span><span><strong class="text-white">Click a brain</strong> for its details. Drag empty space to pan, scroll or pinch to zoom, and use <code class="text-slate-200">&lt; ALL BRAINS &gt;</code> to focus on one brain.</span></li>
+        <li class="flex items-start gap-2.5"><span class="text-sky-400 font-mono-tech font-bold">03</span><span><strong class="text-white">Layout panel:</strong> open it with the sliders button. It starts <em>locked</em>; unlock it to move brains, drag them on the canvas, or change the roots. Settings are saved in this browser.</span></li>
+        <li class="flex items-start gap-2.5"><span class="text-sky-400 font-mono-tech font-bold">04</span><span><strong class="text-white">Moving cells on the links</strong> are a visual only. Feedback still flows one way, from YTAS to JARVIS.</span></li>
+      </ul>
+
+      <div class="flex justify-end pt-2 border-t border-slate-700/40">
+        <button id="btnCloseInfo2" class="px-4 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 text-xs font-medium transition-colors">
+          Got It
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL: a finding, a skill, a brain, or help -->
+  <div id="modalDetail" class="hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-5 space-y-3 max-h-[84vh] flex flex-col">
+      <div class="flex items-center justify-between border-b border-slate-700/50 pb-3">
+        <h3 id="detailTitle" class="text-sm font-semibold tracking-wider uppercase text-slate-100"></h3>
+        <button id="btnCloseDetail" class="text-slate-400 hover:text-white text-lg leading-none px-2" aria-label="Close">&times;</button>
+      </div>
+      <div id="detailBody" class="text-xs text-slate-300 space-y-2 overflow-y-auto drawer-scroll pr-1"></div>
+    </div>
+  </div>
+
+  <!-- EMPTY STATE: no brain.json loaded yet -->
+  <div id="emptyBox" class="glass-panel fixed left-1/2 top-[62%] -translate-x-1/2 z-20 w-[min(440px,92vw)] rounded-2xl p-4 text-center hidden">
+    <p class="text-xs text-slate-300 leading-relaxed">The 6:00 AM YTAS run writes <b class="text-white">my-video\web\data\brain.json</b> on your laptop. Connect that folder once, or load the file. It stays in your browser.</p>
+    <div class="flex flex-wrap justify-center gap-2 mt-3">
+      <button id="emptyFolder" class="hidden px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-300 text-xs font-medium">Connect folder</button>
+      <button id="emptyLoad" class="px-3 py-1.5 rounded-lg bg-sky-500/20 border border-sky-400/40 text-sky-300 text-xs font-medium">Load brain.json</button>
+      <button id="emptySample" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600/50 text-slate-200 text-xs font-medium">View sample</button>
+    </div>
+  </div>
+
+  <div id="tip"></div>
+  <div id="drop">DROP BRAIN.JSON</div>
+  <script type="application/json" id="sample">
 {"schema":"valora-brain/1","sample":true,"generated_at":"2026-11-10T06:00:00+08:00","channel":{"name":"Sample Channel (demo data)","url":"https://www.youtube.com/"},
 "ytas":{"roots":{"yt-script":[{"kind":"finding","state":"glow","text":"Hook scores 41 WEAK (demo).","video_title":"Demo video one","date":"2026-11-09","detail":"Report finding"},{"id":"V-1","kind":"fix","state":"pulse","text":"Open on the viewer's cost in sentence one (demo).","video_title":"Demo video one","date":"2026-11-09","detail":"Fix still needed"}],
 "yt-package":[{"kind":"finding","state":"glow","text":"Title runs past 50 characters on mobile (demo).","video_title":"Demo video two","date":"2026-11-08","detail":"Report finding"}],
@@ -135,752 +570,1725 @@ a { color: var(--ink); }
 "jarvis":{"prompts":{"videos":"Long-form script prompt (demo)","shorts":"Shorts script prompt (demo)"},"in_transit":{"videos":["V-1"],"shorts":[]},"rotation":{"short":{"used":["Money Mindset"],"drafted":[],"remaining":["Spending Psychology","Wealth Psychology","Investing Psychology","Behavioral Finance"]},"long":{"used":[],"drafted":[],"remaining":["Spending Psychology","Wealth Psychology","Investing Psychology","Behavioral Finance","Money Mindset"]}},"scripts":1},
 "videos":{"parts":{"A":"Opening Hook","B":"The Familiar Behavior","C":"The Psychology Behind It","D":"Why Our Brain Does This","E":"The Real Cost","F":"The Bigger Picture","G":"Closing Insight + Final Engagement Hook"},"roots":{"A":[{"id":"V-1","kind":"fix","state":"pulse","text":"Open on the viewer's cost in sentence one (demo).","video_title":"Demo video one","date":"2026-11-09","detail":"Received, not used in a script yet"}],"B":[],"C":[],"D":[],"E":[],"F":[],"G":[],"all":[]}},
 "shorts":{"parts":{"1":"The Hook","2":"The Recognition","3":"The Psychology","4":"The Revelation","5":"The Closing Loop"},"roots":{"1":[],"2":[{"id":"S-1","kind":"fix","state":"glow","text":"Keep the scene in present tense (demo).","video_title":"Demo short","date":"2026-11-07","detail":"Used in jarvis/scripts/demo.md"}],"3":[],"4":[],"5":[],"all":[]}}}
-</script>
+  </script>
 
-<script>
-/* =========================================================
-   THE FOUR BRAINS AND THEIR ROOTS
-   ========================================================= */
-const YTAS_ROOTS = [
-  ["yt-script", "Script", "#7cc8ff"], ["yt-package", "Packaging", "#ffb86b"], ["yt-edit", "Edit", "#ff8fb8"],
-  ["yt-comment", "Comments", "#e6e1ff"], ["yt-plan", "Plan", "#7ff0c8"], ["yt-shorts", "Shorts", "#9fe870"],
-  ["yt-chapters", "Chapters", "#c9b8ff"], ["yt-seo", "Search", "#ffd479"], ["yt-retention", "Retention", "#a98bff"],
-  ["yt-viral", "Niche Outliers", "#ff9f7c"], ["yt-audit", "Audit", "#8fe3ff"],
-];
-const VIDEO_PARTS = { A: "Opening Hook", B: "The Familiar Behavior", C: "The Psychology Behind It", D: "Why Our Brain Does This", E: "The Real Cost", F: "The Bigger Picture", G: "Closing Insight + Final Engagement Hook" };
-const SHORT_PARTS = { 1: "The Hook", 2: "The Recognition", 3: "The Psychology", 4: "The Revelation", 5: "The Closing Loop" };
-const VIDEO_RGB = ["#7cc8ff", "#9fb4ff", "#b9a6ff", "#d39bff", "#ff9fd6", "#ffb86b", "#ffd479"];
-const SHORT_RGB = ["#7ff0c8", "#9fe870", "#d4f06f", "#ffd479", "#ffb86b"];
-// x, y in world units; arc: where the roots fan out (centre and spread, degrees);
-// hub: how far each root's ringed hub sits from the brain; len: branch length past the hub
-const BRAINS = [
-  { id: "ytas", name: "YTAS", sub: "the analyst · 11 skills", x: -455, y: 0, R: 150, tint: "150,200,255", arc: [180, 292], hub: 74, len: 170, nb: 4 },
-  { id: "jarvis", name: "JARVIS", sub: "the scriptwriter", x: 285, y: 0, R: 150, tint: "210,195,255" },
-  { id: "videos", name: "VIDEOS", sub: "long-form · parts A to G", x: 765, y: -335, R: 102, tint: "235,175,255", arc: [-40, 200], hub: 58, len: 128, nb: 3 },
-  { id: "shorts", name: "SHORTS", sub: "Shorts · parts 1 to 5", x: 765, y: 335, R: 102, tint: "150,240,210", arc: [40, 168], hub: 58, len: 128, nb: 3 },
-];
-const FOCUS = [{ name: "ALL BRAINS" }, ...BRAINS];
-const STATE_TXT = { pulse: "Fix still needed · not used yet", glow: "Finding · or fix applied / used" };
-
-const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
-// The old page kept a GitHub token and report here. This page never uses a token: clear them.
-store.set("jarvis.ghToken", null); store.set("jarvis.report", null);
-
-let B = null;  // the loaded brain.json
-
-/* =========================================================
-   LOADING (local file or local folder only; nothing is fetched)
-   ========================================================= */
-function validate(b) {
-  if (!b || b.schema !== "valora-brain/1") return "This file is not brain.json (schema must be valora-brain/1).";
-  if (!b.ytas || !b.ytas.roots || !b.videos || !b.shorts || !b.jarvis) return "brain.json is missing ytas, jarvis, videos or shorts.";
-  return null;
-}
-function useBrain(b, remember, quiet) {
-  const err = validate(b);
-  if (err) { toast(err); return false; }
-  B = b;
-  if (remember) store.set("valora.brain", JSON.stringify(b));
-  buildMap();
-  renderAll();
-  if (!quiet) toast(b.sample ? "Showing the sample brain with made-up data." : `Loaded brain data from ${fmtDate(b.generated_at)}.`);
-  return true;
-}
-function readFile(f) {
-  const fr = new FileReader();
-  fr.onload = () => { try { useBrain(JSON.parse(fr.result), true); } catch { toast("That file is not valid JSON."); } };
-  fr.readAsText(f);
-}
-let DIR = null;
-const canFolder = "showDirectoryPicker" in window;
-function idb() {
-  return new Promise((res, rej) => {
-    const q = indexedDB.open("valora-brain", 1);
-    q.onupgradeneeded = () => q.result.createObjectStore("kv");
-    q.onsuccess = () => res(q.result);
-    q.onerror = () => rej(q.error);
-  });
-}
-async function idbGet(k) { try { const db = await idb(); return await new Promise((r) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch { return null; } }
-async function idbSet(k, v) { try { const db = await idb(); await new Promise((r) => { const t = db.transaction("kv", "readwrite"); const s = t.objectStore("kv"); v === null ? s.delete(k) : s.put(v, k); t.oncomplete = r; t.onerror = r; }); } catch {} }
-// Accepts my-video, my-video\web or my-video\web\data and finds brain.json inside.
-async function findBrain(dir) {
-  for (const path of [[], ["data"], ["web", "data"]]) {
-    try {
-      let d = dir;
-      for (const p of path) d = await d.getDirectoryHandle(p);
-      const f = await (await d.getFileHandle("brain.json")).getFile();
-      return JSON.parse(await f.text());
-    } catch {}
-  }
-  return null;
-}
-async function loadFolder(dir, quiet) {
-  const b = await findBrain(dir);
-  if (!b) { if (!quiet) toast("No brain.json there. Choose my-video\\web\\data."); return null; }
-  if (!useBrain(b, true, quiet)) return null;
-  DIR = dir;
-  setFolderBtn(true);
-  return dir;
-}
-function setFolderBtn(connected) { const b = $("folderBtn"); b.hidden = !canFolder; const t = connected ? "Refresh brain data" : "Connect brain data folder"; b.title = t; b.setAttribute("aria-label", t); $("emptyFolder").hidden = !canFolder; }
-async function folderClick() {
-  try {
-    if (DIR) { await loadFolder(DIR); return; }
-    const saved = await idbGet("dir");
-    if (saved && (await saved.requestPermission({ mode: "read" })) === "granted" && (await loadFolder(saved))) return;
-    const dir = await window.showDirectoryPicker({ id: "valora-brain", mode: "read" });
-    if (await loadFolder(dir)) await idbSet("dir", dir);
-  } catch (e) { if (e && e.name !== "AbortError") toast("Could not open that folder."); }
-}
-$("folderBtn").onclick = folderClick;
-$("emptyFolder").onclick = folderClick;
-const pickFile = () => $("file").click();
-$("loadBtn").onclick = pickFile;
-$("emptyLoad").onclick = pickFile;
-$("emptySample").onclick = () => useBrain(JSON.parse($("sample").textContent), false);
-$("file").onchange = (e) => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ""; };
-let dragDepth = 0;
-addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; $("drop").style.display = "flex"; });
-addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; $("drop").style.display = "none"; } });
-addEventListener("dragover", (e) => e.preventDefault());
-addEventListener("drop", (e) => { e.preventDefault(); dragDepth = 0; $("drop").style.display = "none"; const f = e.dataTransfer.files[0]; if (f) readFile(f); });
-
-/* =========================================================
-   GEOMETRY
-   ========================================================= */
-function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-const hexRgb = (h) => { const n = parseInt(h.slice(1), 16); return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`; };
-const brain = (id) => BRAINS.find((b) => b.id === id);
-
-// Every root a brain has, with its data items, in drawing order.
-function rootSpecs() {
-  const items = (br, k) => (B && B[br] && B[br].roots && B[br].roots[k]) || [];
-  const ytas = YTAS_ROOTS.map(([k, name, color]) => ({ brain: "ytas", key: k, name, label: k, color, items: items("ytas", k) }));
-  const videos = Object.entries(VIDEO_PARTS).map(([k, name], i) => ({ brain: "videos", key: k, name, label: `${k} · ${name}`, color: VIDEO_RGB[i], items: items("videos", k) }));
-  const shorts = Object.entries(SHORT_PARTS).map(([k, name], i) => ({ brain: "shorts", key: k, name, label: `${k} · ${name}`, color: SHORT_RGB[i], items: items("shorts", k) }));
-  return [...ytas, ...videos, ...shorts];
-}
-// JARVIS's roots run to his children; their lit neurons are fixes in transit (received, not processed).
-function transitItems(fmt) {
-  if (!B) return [];
-  const ids = (B.jarvis.in_transit && B.jarvis.in_transit[fmt]) || [];
-  const all = Object.values(B[fmt].roots).flat();
-  return ids.map((id) => ({ ...(all.find((i) => i.id === id) || { id, text: id }), state: "pulse", detail: "In transit: JARVIS received it and has not routed it into a rule yet" }));
-}
-
-/* =========================================================
-   LIVE ENGINE (canvas): spring joints, neurons riding on the roots
-   ========================================================= */
-const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-let NODES = [], LINKS = [], ROOTS = [], NEURONS = [], HALOS = [], STARS = [], BRIGHT = [], GALAXY = [], CORE = [], CORE_PAIRS = [], PULSES = [], METEORS = [];
-let nextMeteor = 4, nextPulse = 0, clock = 0, last = performance.now(), drift = 0;
-let hover = null, grab = null;
-const cam = { x: 0, y: 0, z: 1 }, camT = { x: 0, y: 0, z: 1 };
-let focus = 0;
-
-const MAP = { cv: $("map"), g: $("map").getContext("2d"), W: 0, H: 0, DPR: 1 };
-let W = 0, H = 0, SCALE = 1;
-let BBOX = { x0: -900, x1: 1100, y0: -700, y1: 700 };
-function fit() {
-  const rc = MAP.cv.getBoundingClientRect();
-  MAP.DPR = Math.min(2, devicePixelRatio || 1);
-  W = MAP.W = rc.width; H = MAP.H = rc.height;
-  MAP.cv.width = Math.round(W * MAP.DPR); MAP.cv.height = Math.round(H * MAP.DPR);
-  // fill the window: small side margins, room for the top bar and the bottom controls
-  SCALE = Math.min((W - 24) / (BBOX.x1 - BBOX.x0), (H - (W < 640 ? 150 : 118)) / (BBOX.y1 - BBOX.y0));
-  if (focus === 0) setFocus(0, true);
-}
-addEventListener("resize", fit);
-const S = () => SCALE * cam.z;
-const toS = (x, y) => [W / 2 + (x - cam.x) * S(), H / 2 + (y - cam.y) * S()];
-const toW = (px, py) => [cam.x + (px - W / 2) / S(), cam.y + (py - H / 2) / S()];
-const clampCam = () => { camT.x = Math.max(BBOX.x0, Math.min(BBOX.x1, camT.x)); camT.y = Math.max(BBOX.y0, Math.min(BBOX.y1, camT.y)); };
-
-function addNode(x, y, o, r) { const n = { rx: x, ry: y, x, y, vx: 0, vy: 0, ph: r() * Math.PI * 2, amp: o.amp ?? 2.5 + r() * 3, ...o }; NODES.push(n); return n; }
-// A chain of spring joints from node `first` to (x1,y1), straight segments with a little jitter.
-function chain(x1, y1, segs, wob, r, first, lastKind = "joint") {
-  const x0 = first.rx, y0 = first.ry, nx = -(y1 - y0), ny = x1 - x0, L = Math.hypot(nx, ny) || 1;
-  const pts = [first];
-  for (let s = 1; s <= segs; s++) {
-    const f = s / segs, off = s < segs ? (r() - 0.5) * wob : 0;
-    const n = addNode(x0 + (x1 - x0) * f + (nx / L) * off, y0 + (y1 - y0) * f + (ny / L) * off, { kind: s === segs ? lastKind : "joint", r: 2.6 }, r);
-    LINKS.push({ a: pts[pts.length - 1], b: n, len: 0 });
-    pts.push(n);
-  }
-  return pts;
-}
-// One root, drawn like the old map's agents: a ringed hub off the brain, a fan of branches with
-// star joints and twigs. Its neurons ride on the branches; the data-backed ones light up.
-function buildRoot(spec, hub, ang, step, r) {
-  const b = brain(spec.brain);
-  const rh = addNode(hub.rx + Math.cos(ang) * (b.R + b.hub), hub.ry + Math.sin(ang) * (b.R + b.hub), { kind: "rhub", r: b.R > 120 ? 16 : 13, amp: 2.5 }, r);
-  LINKS.push({ a: hub, b: rh, len: 0 });
-  const nb = b.nb, spread = step * 0.82, branches = [], twigs = [];
-  for (let j = 0; j < nb; j++) {
-    const dir = ang + (nb > 1 ? (j / (nb - 1) - 0.5) * spread : 0);
-    const L = (j % 2 ? 0.8 : 1) * b.len - r() * 18;
-    const pts = chain(rh.rx + Math.cos(dir) * L, rh.ry + Math.sin(dir) * L, 3 + Math.floor(r() * 2), 30, r, rh, "tip");
-    if (r() < 0.6) {
-      const from = pts[1 + Math.floor(r() * (pts.length - 2))], td = dir + (r() < 0.5 ? -1 : 1) * (0.6 + r() * 0.5), tl = 22 + r() * 16;
-      const n = addNode(from.rx + Math.cos(td) * tl, from.ry + Math.sin(td) * tl, { kind: "joint", r: 2 }, r);
-      LINKS.push({ a: from, b: n, len: 0 });
-      twigs.push([from, n]);
-    }
-    branches.push(pts);
-  }
-  const root = { ...spec, hub, rhub: rh, branches, twigs, ang, pts: branches[Math.floor(nb / 2)] };
-  // up to 46 lit per root, always with some dim neurons left; extra items are listed in the root panel
-  const lit = spec.items.length, n = Math.min(52, Math.max(12, lit + 5)), shown = Math.min(lit, 46), per = Math.ceil(n / nb);
-  const litAt = new Set(Array.from({ length: shown }, (_, j) => Math.floor(((j + 0.5) * n) / shown)));
-  let j = 0;
-  for (let k = 0; k < n; k++) {
-    const bi = k % nb, idx = Math.floor(k / nb), pts = branches[bi], segs = pts.length - 1;
-    const u = 0.16 + 0.8 * ((idx + 0.5) / per), sf = Math.min(u * segs, segs - 1e-6);
-    NEURONS.push({ root, br: bi, seg: Math.floor(sf), t: sf - Math.floor(sf), off: (k % 2 ? 1 : -1) * (2 + r() * 4), item: litAt.has(k) ? spec.items[j++] : null, ph: r() * 6.28 });
-  }
-  root.shown = shown;
-  root.labelW = [rh.rx + Math.cos(ang) * (b.len + 30), rh.ry + Math.sin(ang) * (b.len + 30)];
-  ROOTS.push(root);
-  return root;
-}
-function buildMap() {
-  NODES = []; LINKS = []; ROOTS = []; NEURONS = []; HALOS = [];
-  const r = rng(11);
-  const hubs = {};
-  BRAINS.forEach((b) => (hubs[b.id] = addNode(b.x, b.y, { kind: "hub", brain: b, r: b.R, amp: 4 }, r)));
-  const specs = rootSpecs();
-  for (const b of BRAINS) {
-    if (!b.arc) continue;
-    const mine = specs.filter((s) => s.brain === b.id), [c, spread] = b.arc;
-    const step = mine.length > 1 ? (spread / (mine.length - 1)) * (Math.PI / 180) : 1;
-    mine.forEach((s, i) => buildRoot(s, hubs[b.id], ((c + (mine.length > 1 ? (i / (mine.length - 1) - 0.5) * spread : 0)) * Math.PI) / 180, step, r));
-  }
-  // the visible link YTAS -> JARVIS, and JARVIS's two roots to his children
-  const link = (from, to, items, color, label, fmt) => {
-    const a = brain(from), z = brain(to), ang = Math.atan2(z.y - a.y, z.x - a.x);
-    const s0 = addNode(a.x + Math.cos(ang) * (a.R + 4), a.y + Math.sin(ang) * (a.R + 4), { kind: "joint", r: 2.6, amp: 1 }, r);
-    LINKS.push({ a: hubs[from], b: s0, len: 0 });
-    const pts = chain(z.x - Math.cos(ang) * (z.R + 4), z.y - Math.sin(ang) * (z.R + 4), 5, 26, r, s0);
-    LINKS.push({ a: pts[pts.length - 1], b: hubs[to], len: 0 });
-    const root = { brain: from, key: `${from}>${to}`, name: label, label, color, items, hub: hubs[from], branches: [pts], pts, twigs: [], ang, link: true, fmt };
-    const n = Math.max(10, items.length + 4);
-    const litAt = new Set(Array.from({ length: items.length }, (_, j) => Math.floor(((j + 0.5) * n) / items.length)));
-    let j = 0;
-    for (let k = 0; k < n; k++) {
-      const u = 0.05 + 0.9 * ((k + 0.5) / n), segs = pts.length - 1, sf = Math.min(u * segs, segs - 1e-6);
-      NEURONS.push({ root, br: 0, seg: Math.floor(sf), t: sf - Math.floor(sf), off: (k % 2 ? 1 : -1) * (3 + r() * 4), item: litAt.has(k) ? items[j++] : null, ph: r() * 6.28 });
-    }
-    root.shown = items.length;
-    ROOTS.push(root);
-  };
-  link("ytas", "jarvis", [], "#c9b8ff", "YTAS → JARVIS · one way");
-  link("jarvis", "videos", transitItems("videos"), "#d39bff", "to VIDEOS", "videos");
-  link("jarvis", "shorts", transitItems("shorts"), "#7ff0c8", "to SHORTS", "shorts");
-  // whole-script fixes ("all") ring the child brain
-  for (const id of ["videos", "shorts"]) {
-    const items = (B && B[id].roots.all) || [], b = brain(id), n = Math.max(16, items.length + 6);
-    for (let k = 0; k < n; k++) HALOS.push({ hub: hubs[id], a: (k / n) * 6.283, rad: b.R + 14, item: k < items.length ? items[k] : null, ph: r() * 6.28,
-      root: { brain: id, key: "all", name: "Whole script", label: "Whole script", color: id === "videos" ? "#d39bff" : "#7ff0c8", items } });
-  }
-  LINKS.forEach((l) => (l.len = Math.hypot(l.b.rx - l.a.rx, l.b.ry - l.a.ry)));
-  // the map's extent: every node plus room for the root labels
-  const xs = [], ys = [];
-  NODES.forEach((n) => { xs.push(n.rx); ys.push(n.ry); });
-  ROOTS.forEach((rt) => { if (rt.labelW) { const right = Math.cos(rt.ang) > 0.25, left = Math.cos(rt.ang) < -0.25; const tw = (rt.brain === "ytas" ? 11 : 8.2) * (rt.brain === "ytas" ? rt.name : rt.label).length + 10; xs.push(rt.labelW[0] + (right ? tw : left ? -tw : 0)); ys.push(rt.labelW[1] + 24, rt.labelW[1] - 14); } });
-  BBOX = { x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys) };
-  const TINTS = ["255,255,255", "255,255,255", "205,220,255", "180,200,255", "255,236,214", "232,210,255"];
-  STARS = Array.from({ length: 650 }, () => ({ x: r() * 2400 - 1200, y: r() * 1900 - 950, s: 0.35 + Math.pow(r(), 3) * 1.6, z: 0.2 + r() * 0.8, tw: r() * 6, tws: 0.6 + r() * 2, c: TINTS[Math.floor(r() * TINTS.length)] }));
-  BRIGHT = Array.from({ length: 16 }, () => ({ x: r() * 2300 - 1150, y: r() * 1800 - 900, s: 1.4 + r() * 1.4, z: 0.5 + r() * 0.5, tw: r() * 6, c: TINTS[Math.floor(r() * TINTS.length)] }));
-  const ARM_RGB = ["170,140,255", "120,160,255", "235,140,210", "200,190,255"];
-  GALAXY = Array.from({ length: 1300 }, (_, i) => {
-    const arm = i % 3, t = Math.pow(r(), 0.7), radius = 110 + t * 720;
-    const ang = (arm * 2 * Math.PI) / 3 + radius * 0.0105 + (r() - 0.5) * (0.5 + t * 0.6);
-    return { x: Math.cos(ang) * radius, y: Math.sin(ang) * radius * 0.92, s: 0.4 + r() * 1.1, al: (0.05 + r() * 0.22) * (1 - t * 0.55), c: ARM_RGB[Math.floor(r() * ARM_RGB.length)] };
-  });
-  CORE = [];
-  const NC = 240, GA = Math.PI * (3 - Math.sqrt(5));
-  for (let i = 0; i < NC; i++) {
-    const y = 1 - (i / (NC - 1)) * 2, rr = Math.sqrt(1 - y * y), a = GA * i, j = 0.86 + r() * 0.2;
-    CORE.push({ x: Math.cos(a) * rr * j, y: y * j, z: Math.sin(a) * rr * j, s: 0.7 + r() * 1.2 });
-  }
-  CORE_PAIRS = [];
-  for (let i = 0; i < NC; i++) for (let j = i + 1; j < NC; j++) {
-    const a = CORE[i], b = CORE[j];
-    if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 + (a.z - b.z) ** 2 < 0.055) CORE_PAIRS.push([i, j]);
-  }
-  PULSES = [];
-  $("empty").style.display = B ? "none" : "block";
-  fit();
-  setFocus(focus, true);
-}
-
-/* ---------- physics: springs home, links like soft ropes ---------- */
-const K_HOME = 26, K_LINK = 140, DAMP = 7.5;
-function step(dt) {
-  const held = grab && grab.node;
-  for (const n of NODES) {
-    if (n === held) continue;
-    const fx = REDUCED ? 0 : Math.sin(clock * 0.9 + n.ph) * n.amp, fy = REDUCED ? 0 : Math.cos(clock * 0.7 + n.ph * 1.3) * n.amp;
-    const k = n.kind === "hub" ? K_HOME * 2.2 : K_HOME;
-    n.ax = k * (n.rx + fx - n.x) - DAMP * n.vx;
-    n.ay = k * (n.ry + fy - n.y) - DAMP * n.vy;
-  }
-  for (const l of LINKS) {
-    const dx = l.b.x - l.a.x, dy = l.b.y - l.a.y, d = Math.hypot(dx, dy) || 0.001, f = (K_LINK * (d - l.len)) / d;
-    if (l.a !== held) { l.a.ax += f * dx * 0.5; l.a.ay += f * dy * 0.5; }
-    if (l.b !== held) { l.b.ax -= f * dx; l.b.ay -= f * dy; }
-  }
-  for (const n of NODES) {
-    if (n === held) continue;
-    n.vx += n.ax * dt; n.vy += n.ay * dt; n.x += n.vx * dt; n.y += n.vy * dt;
-  }
-}
-function neuronW(n) {
-  const pts = n.root.branches[n.br], a = pts[n.seg], b = pts[n.seg + 1], nx = -(b.y - a.y), ny = b.x - a.x, L = Math.hypot(nx, ny) || 1;
-  return [a.x + (b.x - a.x) * n.t + (nx / L) * n.off, a.y + (b.y - a.y) * n.t + (ny / L) * n.off];
-}
-const haloW = (h) => { const a = h.a + clock * 0.12; return [h.hub.x + Math.cos(a) * h.rad, h.hub.y + Math.sin(a) * h.rad]; };
-
-/* ---------- signals: data flows YTAS -> JARVIS -> children, one way ---------- */
-function spawnPulse() {
-  const live = ROOTS.filter((r) => r.link || r.shown);
-  const pool = live.length ? live : ROOTS;
-  const rt = pool[Math.floor(Math.random() * pool.length)];
-  if (!rt) return;
-  const br = Math.floor(Math.random() * rt.branches.length);
-  // YTAS roots carry findings into YTAS (tip -> brain); every other root carries them outward
-  PULSES.push({ rt, br, t: 0, inward: rt.brain === "ytas" && !rt.link, speed: 0.32 + Math.random() * 0.25, rgb: hexRgb(rt.color) });
-}
-function pulseW(p) {
-  const pts = p.rt.branches[p.br].map((n) => [n.x, n.y]);
-  if (p.rt.rhub) { const h = p.rt.hub, b = brain(p.rt.brain); pts.unshift([h.x + Math.cos(p.rt.ang) * b.R, h.y + Math.sin(p.rt.ang) * b.R]); }
-  if (p.inward) pts.reverse();
-  const segs = pts.length - 1, u = Math.min(p.t * segs, segs - 1e-6), i = Math.floor(u), f = u - i;
-  return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f];
-}
-
-/* ---------- drawing ---------- */
-function drawBackground(g) {
-  const a = drift, SS = Math.max(0.55, Math.min(1.4, Math.min(W, H) / 900)), SC = Math.max(SCALE, 0.5);
-  const px = -cam.x * S() * 0.25, py = -cam.y * S() * 0.25;
-  for (const s of STARS) {
-    const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
-    const x = W / 2 + (s.x * c - s.y * sn) * SC + px * s.z, y = H / 2 + (s.x * sn + s.y * c) * SC + py * s.z;
-    if (x < -4 || y < -4 || x > W + 4 || y > H + 4) continue;
-    const tw = REDUCED ? 0.7 : 0.45 + 0.4 * Math.sin(clock * s.tws + s.tw);
-    g.fillStyle = `rgba(${s.c},${(tw * (0.35 + s.z * 0.65)).toFixed(3)})`;
-    const rr = s.s * (0.5 + s.z * 0.7) * SS;
-    if (rr < 0.9) g.fillRect(x - rr, y - rr, rr * 2, rr * 2); else { g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill(); }
-  }
-  for (const s of BRIGHT) {
-    const c = Math.cos(a * s.z * 0.35), sn = Math.sin(a * s.z * 0.35);
-    const x = W / 2 + (s.x * c - s.y * sn) * SC + px * s.z, y = H / 2 + (s.x * sn + s.y * c) * SC + py * s.z;
-    if (x < -20 || y < -20 || x > W + 20 || y > H + 20) continue;
-    const tw = REDUCED ? 0.8 : 0.55 + 0.45 * Math.sin(clock * 0.9 + s.tw), rr = s.s * SS, L = rr * (5 + 4 * tw);
-    const glow = g.createRadialGradient(x, y, 0, x, y, rr * 5);
-    glow.addColorStop(0, `rgba(${s.c},${0.55 * tw})`); glow.addColorStop(1, `rgba(${s.c},0)`);
-    g.fillStyle = glow; g.beginPath(); g.arc(x, y, rr * 5, 0, 6.283); g.fill();
-    g.strokeStyle = `rgba(${s.c},${0.35 * tw})`; g.lineWidth = 0.8;
-    g.beginPath(); g.moveTo(x - L, y); g.lineTo(x + L, y); g.moveTo(x, y - L); g.lineTo(x, y + L); g.stroke();
-    g.fillStyle = `rgba(255,255,255,${0.9 * tw})`; g.beginPath(); g.arc(x, y, rr * 0.7, 0, 6.283); g.fill();
-  }
-  const ga = a * 0.7, gc = Math.cos(ga), gs = Math.sin(ga), [gx, gy] = toS(-70, 0);
-  for (const p of GALAXY) {
-    const x = gx + (p.x * gc - p.y * gs) * S(), y = gy + (p.x * gs + p.y * gc) * S();
-    g.fillStyle = `rgba(${p.c},${p.al})`;
-    const rr = p.s * Math.max(0.6, S() * 1.2);
-    g.fillRect(x - rr / 2, y - rr / 2, rr, rr);
-  }
-  for (const m of METEORS) {
-    const fade = Math.sin(Math.PI * (m.t / m.life)), x = m.x + m.vx * m.t, y = m.y + m.vy * m.t;
-    const grd = g.createLinearGradient(x, y, x - m.vx * 0.12, y - m.vy * 0.12);
-    grd.addColorStop(0, `rgba(255,255,255,${0.9 * fade})`); grd.addColorStop(1, "rgba(255,255,255,0)");
-    g.strokeStyle = grd; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x - m.vx * 0.12, y - m.vy * 0.12); g.stroke();
-  }
-}
-function drawRoots(g) {
-  const f = Math.max(0.75, S() * 1.15), lw = Math.max(1, Math.min(2.2, S() * 1.6)), hiRoot = hover && hover.root;
-  g.setLineDash([2, 6]); g.lineWidth = 1; g.strokeStyle = "rgba(255,255,255,.16)";
-  for (const rt of ROOTS) {
-    if (!rt.rhub) continue;
-    const b = brain(rt.brain), [x1, y1] = toS(rt.hub.x + Math.cos(rt.ang) * b.R * 0.98, rt.hub.y + Math.sin(rt.ang) * b.R * 0.98), [x2, y2] = toS(rt.rhub.x, rt.rhub.y);
-    g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-  }
-  g.setLineDash([]);
-  for (const rt of ROOTS) {
-    const rgb = hexRgb(rt.color), live = rt.items.length > 0 || rt.link, hi = rt === hiRoot;
-    if (rt.link) g.setLineDash([3, 6]);
-    for (const pts of rt.branches) for (let i = 1; i < pts.length; i++) {
-      const a = pts[i - 1], c = pts[i], [x1, y1] = toS(a.x, a.y), [x2, y2] = toS(c.x, c.y);
-      const stretch = Math.max(0, Math.hypot(c.x - a.x, c.y - a.y) / (Math.hypot(c.rx - a.rx, c.ry - a.ry) || 1) - 1);
-      let alpha = (live ? 0.55 : 0.3) + (hi ? 0.3 : 0);
-      if (live) { g.strokeStyle = `rgba(${rgb},${0.1 + (hi ? 0.12 : 0)})`; g.lineWidth = lw * 4; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }
-      g.strokeStyle = stretch > 0.05 ? `rgba(${rgb},${Math.min(1, alpha + stretch)})` : `rgba(255,255,255,${Math.min(0.95, alpha)})`;
-      g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-    }
-    g.setLineDash([]);
-    for (const [a, c] of rt.twigs) {
-      const [x1, y1] = toS(a.x, a.y), [x2, y2] = toS(c.x, c.y);
-      g.strokeStyle = `rgba(255,255,255,${live ? 0.3 : 0.18})`; g.lineWidth = lw; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-    }
-  }
-  for (const p of PULSES) {
-    const [wx, wy] = pulseW(p), [x, y] = toS(wx, wy), fade = Math.sin(Math.PI * Math.min(1, p.t)), rr = 9 * Math.max(0.8, S() * 1.3);
-    const grd = g.createRadialGradient(x, y, 0, x, y, rr);
-    grd.addColorStop(0, `rgba(${p.rgb},${0.9 * fade})`); grd.addColorStop(1, `rgba(${p.rgb},0)`);
-    g.fillStyle = grd; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
-  }
-  // star joints and branch tips, as on the old map
-  for (const rt of ROOTS) {
-    const live = rt.items.length > 0 || rt.link;
-    for (const pts of rt.branches) for (const n of pts) {
-      if (n.kind === "rhub" || n.kind === "hub") continue;
-      const [x, y] = toS(n.x, n.y);
-      if (n.kind === "tip") { g.strokeStyle = `rgba(255,255,255,${live ? 0.5 : 0.35})`; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, 5 * f, 0, 6.283); g.stroke(); }
-      else { g.fillStyle = `rgba(255,255,255,${live ? 0.8 : 0.4})`; g.beginPath(); g.arc(x, y, 2.5 * f, 0, 6.283); g.fill(); }
-    }
-    for (const [, c] of rt.twigs) { const [x, y] = toS(c.x, c.y); g.fillStyle = `rgba(255,255,255,${live ? 0.7 : 0.35})`; g.beginPath(); g.arc(x, y, 2 * f, 0, 6.283); g.fill(); }
-  }
-}
-// The ringed hub at the base of each root: colour ring, its first letter, a wave while fixes pulse.
-function drawRootHub(g, rt) {
-  const h = rt.rhub, [x, y] = toS(h.x, h.y), pz = rt.items.some((i) => i.state === "pulse");
-  const rr = h.r * Math.max(0.85, S() * 1.15) * (hover && hover.root === rt ? 1.15 : 1);
-  const beat = pz ? 0.45 + 0.55 * (0.5 + 0.5 * Math.sin(clock * 3.2)) : 1;
-  g.fillStyle = "rgba(24,26,60,.94)"; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
-  g.globalAlpha = rt.items.length ? beat : 0.55; g.strokeStyle = rt.color; g.lineWidth = 2.4; g.stroke(); g.globalAlpha = 1;
-  if (pz && !REDUCED) { const w = (clock * 0.8) % 1; g.strokeStyle = `rgba(${hexRgb(rt.color)},${(1 - w) * 0.5})`; g.lineWidth = 1.5; g.beginPath(); g.arc(x, y, rr + w * 22 * Math.max(0.8, S() * 1.4), 0, 6.283); g.stroke(); }
-  g.fillStyle = rt.color; g.font = `600 ${Math.round(Math.max(11, rr * 0.95))}px Cinzel, serif`;
-  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(rt.brain === "ytas" ? rt.name[0] : rt.key, x, y + 1);
-  h.sx = x; h.sy = y; h.sr = rr;
-}
-function drawNeuron(g, x, y, n, rootColor) {
-  const f = Math.max(0.65, S() * 1.25);
-  if (!n.item) { g.fillStyle = "rgba(255,255,255,.2)"; g.beginPath(); g.arc(x, y, 1.6 * f, 0, 6.283); g.fill(); return; }
-  const rgb = hexRgb(rootColor), big = hover && hover.n === n ? 1.45 : 1;
-  if (n.item.state === "pulse") {
-    const beat = REDUCED ? 1 : 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(clock * 3.4 + n.ph)), rr = 4.4 * f * big;
-    const glow = g.createRadialGradient(x, y, 0, x, y, rr * 4.2);
-    glow.addColorStop(0, `rgba(${rgb},${0.85 * beat})`); glow.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = glow; g.beginPath(); g.arc(x, y, rr * 4.2, 0, 6.283); g.fill();
-    if (!REDUCED) { const w = (clock * 0.9 + n.ph / 6.28) % 1; g.strokeStyle = `rgba(${rgb},${(1 - w) * 0.6})`; g.lineWidth = 1.3; g.beginPath(); g.arc(x, y, rr + w * 16 * f, 0, 6.283); g.stroke(); }
-    g.fillStyle = "#fff"; g.strokeStyle = rootColor; g.lineWidth = 1.6; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill(); g.stroke();
-  } else {
-    const tw = REDUCED ? 1 : 0.85 + 0.15 * Math.sin(clock * 1.6 + n.ph), rr = 3.4 * f * big;
-    const glow = g.createRadialGradient(x, y, 0, x, y, rr * 3);
-    glow.addColorStop(0, `rgba(${rgb},${0.42 * tw})`); glow.addColorStop(1, `rgba(${rgb},0)`);
-    g.fillStyle = glow; g.beginPath(); g.arc(x, y, rr * 3, 0, 6.283); g.fill();
-    g.fillStyle = `rgba(${rgb},.92)`; g.beginPath(); g.arc(x, y, rr, 0, 6.283); g.fill();
-  }
-}
-function drawCore(g, b, hub) {
-  const [x0, y0] = toS(hub.x, hub.y), Rr = b.R * S() * (hover && hover.hub === hub ? 1.06 : 1);
-  const breathe = 1 + 0.03 * Math.sin(clock * 1.4 + b.x);
-  const halo = g.createRadialGradient(x0, y0, 0, x0, y0, Rr * 2.2);
-  halo.addColorStop(0, `rgba(${b.tint},.36)`); halo.addColorStop(0.5, `rgba(${b.tint},.12)`); halo.addColorStop(1, `rgba(${b.tint},0)`);
-  g.fillStyle = halo; g.beginPath(); g.arc(x0, y0, Rr * 2.2, 0, 6.283); g.fill();
-  const ay = clock * 0.35 + b.x * 0.01, ax = 0.35 + Math.sin(clock * 0.2 + b.y) * 0.15;
-  const cy = Math.cos(ay), sy = Math.sin(ay), cxr = Math.cos(ax), sxr = Math.sin(ax);
-  const P = CORE.map((p) => { const x1 = p.x * cy + p.z * sy, z1 = -p.x * sy + p.z * cy, y2 = p.y * cxr - z1 * sxr, z2 = p.y * sxr + z1 * cxr; return [x0 + x1 * Rr * breathe, y0 + y2 * Rr * breathe, z2]; });
-  g.lineWidth = 0.7;
-  for (const [i, j] of CORE_PAIRS) { const z = (P[i][2] + P[j][2]) / 2; g.strokeStyle = `rgba(${b.tint},${(0.08 + 0.24 * (z + 1) / 2).toFixed(3)})`; g.beginPath(); g.moveTo(P[i][0], P[i][1]); g.lineTo(P[j][0], P[j][1]); g.stroke(); }
-  const ps = Math.max(0.55, S() * 1.2) * (b.R / 108);
-  CORE.forEach((p, i) => { const z = (P[i][2] + 1) / 2; g.fillStyle = `rgba(255,255,255,${(0.25 + 0.75 * z).toFixed(3)})`; g.beginPath(); g.arc(P[i][0], P[i][1], p.s * (0.6 + 0.6 * z) * ps, 0, 6.283); g.fill(); });
-  const fs = Math.max(11, (b.R > 80 ? 23 : 15) * S());
-  g.font = `600 ${Math.round(fs)}px Cinzel, serif`;
-  if ("letterSpacing" in g) g.letterSpacing = `${(fs * 0.3).toFixed(1)}px`;
-  g.textAlign = "center"; g.textBaseline = "middle";
-  g.lineWidth = 4; g.strokeStyle = "rgba(30,30,70,.85)"; g.strokeText(b.name, x0, y0); g.fillStyle = "#fff"; g.fillText(b.name, x0, y0);
-  if ("letterSpacing" in g) g.letterSpacing = "0px";
-  hub.sx = x0; hub.sy = y0; hub.sr = Rr;
-}
-function rootLabel(g, rt) {
-  if (rt.link) return;
-  const [x, y] = toS(rt.labelW[0], rt.labelW[1]);
-  const size = Math.max(10, Math.min(22, (rt.brain === "ytas" ? 19 : 14) * S() * 1.1));
-  const right = Math.cos(rt.ang) > 0.25, left = Math.cos(rt.ang) < -0.25;
-  g.textAlign = right ? "left" : left ? "right" : "center"; g.textBaseline = "middle";
-  const text = rt.brain === "ytas" ? rt.name.toUpperCase() : rt.key + " · " + rt.name.toUpperCase();
-  const pz = rt.items.filter((i) => i.state === "pulse").length;
-  const sub = `${rt.brain === "ytas" ? "/" + rt.label + " · " : ""}${rt.items.length} lit${pz ? ` · ${pz} pulsing` : ""}${rt.items.length > rt.shown ? ` (+${rt.items.length - rt.shown} in list)` : ""}`;
-  g.font = `600 ${Math.round(size)}px Cinzel, serif`;
-  if ("letterSpacing" in g) g.letterSpacing = `${(size * 0.12).toFixed(1)}px`;
-  g.globalAlpha = rt.items.length ? 1 : 0.6;
-  g.lineJoin = "round"; g.lineWidth = 4; g.strokeStyle = "rgba(12,12,34,.9)";
-  g.strokeText(text, x, y); g.fillStyle = "#f2f0ff"; g.fillText(text, x, y);
-  const w = g.measureText(text).width;
-  if ("letterSpacing" in g) g.letterSpacing = "0px";
-  g.font = `${Math.round(Math.max(9, size * 0.52))}px "Space Grotesk", sans-serif`;
-  g.lineWidth = 3; g.strokeText(sub, x, y + size * 0.9); g.fillStyle = rt.items.length ? rt.color : "#a9acd6"; g.fillText(sub, x, y + size * 0.9);
-  g.globalAlpha = 1;
-  rt.lx = right ? x + w / 2 : left ? x - w / 2 : x; rt.ly = y + size * 0.35; rt.lw = Math.max(w, 60) / 2 + 6;
-}
-function draw() {
-  const g = MAP.g;
-  g.setTransform(MAP.DPR, 0, 0, MAP.DPR, 0, 0);
-  g.clearRect(0, 0, W, H);
-  drawBackground(g);
-  drawRoots(g);
-  for (const n of NEURONS) { const [wx, wy] = neuronW(n), [x, y] = toS(wx, wy); n.sx = x; n.sy = y; drawNeuron(g, x, y, n, n.root.color); }
-  for (const h of HALOS) { const [wx, wy] = haloW(h), [x, y] = toS(wx, wy); h.sx = x; h.sy = y; if (h.item || !REDUCED) drawNeuron(g, x, y, h, h.root.color); }
-  ROOTS.forEach((rt) => rt.rhub && drawRootHub(g, rt));
-  NODES.filter((n) => n.kind === "hub").forEach((h) => drawCore(g, h.brain, h));
-  ROOTS.forEach((rt) => rootLabel(g, rt));
-  // the one-way arrow on the YTAS -> JARVIS link
-  const lk = ROOTS.find((r) => r.key === "ytas>jarvis");
-  if (lk) {
-    const m = lk.pts[Math.floor(lk.pts.length / 2)], [x, y] = toS(m.x, m.y), fs = Math.max(9, 12 * S() * 1.3);
-    g.font = `600 ${Math.round(fs)}px Cinzel, serif`; g.textAlign = "center"; g.textBaseline = "bottom";
-    g.lineWidth = 3; g.strokeStyle = "rgba(12,12,34,.9)"; g.strokeText("ONE WAY  →", x, y - 10); g.fillStyle = "#c9b8ff"; g.fillText("ONE WAY  →", x, y - 10);
-  }
-}
-
-/* ---------- loop: the brains never stop ---------- */
-function frame(now) {
-  const dt = Math.min(0.033, (now - last) / 1000);
-  last = now; clock += dt; drift += (REDUCED ? 0 : 0.012) * dt;
-  if (MAP.cv.clientWidth !== W || MAP.cv.clientHeight !== H) fit();
-  const e = Math.min(1, dt * 5);
-  cam.x += (camT.x - cam.x) * e; cam.y += (camT.y - cam.y) * e; cam.z += (camT.z - cam.z) * e;
-  if (grab && grab.kind === "node" && grab.moved) { const [wx, wy] = toW(grab.px, grab.py); grab.node.x = wx; grab.node.y = wy; grab.node.vx = grab.node.vy = 0; }
-  step(dt / 2); step(dt / 2);
-  if (clock > nextPulse) { spawnPulse(); nextPulse = clock + (B ? 0.3 : 0.8) + Math.random() * 0.3; }
-  PULSES.forEach((p) => (p.t += dt * p.speed)); PULSES = PULSES.filter((p) => p.t < 1);
-  if (!REDUCED && clock > nextMeteor) {
-    const fromLeft = Math.random() < 0.5, sp = 650 + Math.random() * 450, ang = (fromLeft ? 0.35 : Math.PI - 0.35) + (Math.random() - 0.5) * 0.4;
-    METEORS.push({ x: fromLeft ? Math.random() * W * 0.5 : W * 0.5 + Math.random() * W * 0.5, y: Math.random() * H * 0.45, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp, t: 0, life: 0.7 + Math.random() * 0.5 });
-    nextMeteor = clock + 5 + Math.random() * 7;
-  }
-  METEORS.forEach((m) => (m.t += dt)); METEORS = METEORS.filter((m) => m.t < m.life);
-  if (W > 0) draw();
-  requestAnimationFrame(frame);
-}
-
-/* ---------- focus: ‹ › moves the camera between the brains ---------- */
-function setFocus(i, instant) {
-  focus = ((i % FOCUS.length) + FOCUS.length) % FOCUS.length;
-  const f = FOCUS[focus];
-  if (!f.id) { camT.x = (BBOX.x0 + BBOX.x1) / 2; camT.y = (BBOX.y0 + BBOX.y1) / 2; camT.z = 1; }
-  else { camT.x = f.x + (f.id === "ytas" ? -60 : f.id === "jarvis" ? 60 : 90); camT.y = f.y; camT.z = W < 640 ? (f.R > 120 ? 2.1 : 2.6) : f.R > 120 ? 1.7 : 2.1; clampCam(); }
-  if (instant) Object.assign(cam, camT);
-  $("focusName").textContent = f.name;
-  MAP.cv.classList.toggle("locked", !f.id);
-}
-$("rotL").onclick = () => setFocus(focus - 1);
-$("rotR").onclick = () => setFocus(focus + 1);
-
-/* ---------- interaction ---------- */
-function pick(px, py) {
-  let best = null, bestD = 14;
-  for (const n of [...NEURONS, ...HALOS]) { if (!n.item || n.sx == null) continue; const d = Math.hypot(n.sx - px, n.sy - py); if (d < bestD) { bestD = d; best = { n, root: n.root }; } }
-  if (best) return best;
-  for (const rt of ROOTS) if (rt.rhub && rt.rhub.sr && Math.hypot(rt.rhub.sx - px, rt.rhub.sy - py) < rt.rhub.sr + 4) return { label: rt, root: rt, node: rt.rhub };
-  for (const h of NODES) if (h.kind === "hub" && h.sr && Math.hypot(h.sx - px, h.sy - py) < h.sr) return { hub: h };
-  for (const rt of ROOTS) if (rt.lx != null && Math.abs(px - rt.lx) < rt.lw && Math.abs(py - rt.ly) < 16) return { label: rt, root: rt };
-  for (const j of NODES) { if (j.kind !== "joint" && j.kind !== "tip") continue; const [x, y] = toS(j.x, j.y); if (Math.hypot(x - px, y - py) < 9) return { joint: j }; }
-  return null;
-}
-const cv = MAP.cv, pointers = new Map();
-const local = (e) => { const rc = cv.getBoundingClientRect(); return [e.clientX - rc.left, e.clientY - rc.top]; };
-cv.addEventListener("pointerdown", (e) => {
-  const [px, py] = local(e);
-  pointers.set(e.pointerId, [px, py]);
-  cv.setPointerCapture(e.pointerId);
-  if (pointers.size === 2 && focus !== 0) { const [a, b] = [...pointers.values()]; grab = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]), z0: camT.z, moved: true }; return; }
-  const p = pick(px, py);
-  if (p && (p.joint || p.hub || p.node)) grab = { kind: "node", node: p.joint || p.hub || p.node, hit: p, x: px, y: py, px, py, moved: false };
-  else grab = { kind: focus === 0 ? "none" : "pan", hit: p, x: px, y: py, cx: camT.x, cy: camT.y, moved: false };
-  cv.classList.add("grabbing");
-});
-cv.addEventListener("pointermove", (e) => {
-  const [px, py] = local(e);
-  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, [px, py]);
-  if (!grab) { const p = pick(px, py); hover = p; cv.style.cursor = p && (p.n || p.hub || p.label) ? "pointer" : p && p.joint ? "grab" : focus === 0 ? "default" : "grab"; showTip(e, p); return; }
-  if (grab.kind === "pinch") { if (pointers.size === 2) { const [a, b] = [...pointers.values()]; camT.z = clampZ(grab.z0 * Math.hypot(a[0] - b[0], a[1] - b[1]) / grab.d0); } return; }
-  if (!grab.moved && Math.hypot(px - grab.x, py - grab.y) > 6) grab.moved = true;
-  if (!grab.moved) return;
-  $("tip").style.display = "none";
-  if (grab.kind === "node") { grab.px = px; grab.py = py; }
-  else if (grab.kind === "pan") { camT.x = grab.cx - (px - grab.x) / S(); camT.y = grab.cy - (py - grab.y) / S(); clampCam(); cam.x = camT.x; cam.y = camT.y; }
-});
-const release = (e) => {
-  pointers.delete(e.pointerId);
-  if (!grab) return;
-  const g = grab; grab = null;
-  cv.classList.remove("grabbing");
-  if (g.moved) return;
-  const p = g.hit;
-  if (!p) return;
-  if (p.n) openItem(p.n.item, p.root);
-  else if (p.label) openRoot(p.label);
-  else if (p.hub) openBrain(p.hub.brain.id);
-};
-cv.addEventListener("pointerup", release);
-cv.addEventListener("pointercancel", release);
-cv.addEventListener("pointerleave", () => { if (!grab) { hover = null; $("tip").style.display = "none"; } });
-const clampZ = (z) => Math.max(1, Math.min(5, z));
-cv.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  if (focus === 0) return;  // the whole map stays fixed; zoom only on one brain
-  const [px, py] = local(e), [wx, wy] = toW(px, py);
-  const z = clampZ(camT.z * Math.exp(-e.deltaY * 0.0015));
-  camT.x = wx - (px - W / 2) / (SCALE * z); camT.y = wy - (py - H / 2) / (SCALE * z); camT.z = z; clampCam();
-}, { passive: false });
-addEventListener("keydown", (e) => { if (e.key === "ArrowRight") setFocus(focus + 1); if (e.key === "ArrowLeft") setFocus(focus - 1); });
-
-function showTip(e, p) {
-  const tip = $("tip");
-  if (!p || p.joint) { tip.style.display = "none"; return; }
-  if (p.n) {
-    const it = p.n.item;
-    tip.innerHTML = `<b>${esc(it.text)}</b><br><span class="muted">${esc(it.video_title || it.video_id || "channel-wide")}${it.date ? " · " + esc(fmtDate(it.date)) : ""}</span><br>
-      <span class="st" style="color:${it.state === "pulse" ? "#fff" : p.root.color}">${esc(it.detail || STATE_TXT[it.state])}</span>`;
-  } else if (p.hub) {
-    const b = p.hub.brain, lit = ROOTS.filter((r) => r.brain === b.id && !r.link).reduce((s, r) => s + r.items.length, 0);
-    tip.innerHTML = `<b>${esc(b.name)}</b><br><span class="muted">${esc(b.sub)}${b.id === "jarvis" ? "" : ` · ${lit} lit`}</span>`;
-  } else {
-    const rt = p.label, pz = rt.items.filter((i) => i.state === "pulse").length;
-    tip.innerHTML = `<b>${esc(rt.brain === "ytas" ? rt.label + " · " + rt.name : rt.label)}</b><br><span class="muted">${rt.items.length - pz} glowing · ${pz} pulsing</span>`;
-  }
-  tip.style.display = "block";
-  tip.style.left = Math.min(e.clientX + 14, innerWidth - 310) + "px";
-  tip.style.top = e.clientY + 14 + "px";
-}
-
-/* =========================================================
-   PANELS
-   ========================================================= */
-const panel = $("panel");
-const closePanel = () => panel.classList.remove("open");
-function openPanel(html, wide) {
-  $("tip").style.display = "none";
-  panel.innerHTML = html;
-  panel.classList.toggle("wide", !!wide); panel.classList.add("open"); panel.scrollTop = 0;
-  const x = $("px"); if (x) x.onclick = closePanel;
-  panel.querySelectorAll("[data-item]").forEach((el) => (el.onclick = () => { const [ri, ii] = el.dataset.item.split(":"); const rt = ROOTS[+ri] || HALOS.find((h) => h.root.key === "all" && h.root.brain === ri)?.root; if (rt) openItem(rt.items[+ii], rt); }));
-}
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closePanel(); setLegend(false); } });
-const ptop = (pill) => `<div class="p-top"><span class="pill">${esc(pill)}</span><button class="x" id="px" aria-label="Close">×</button></div>${B && B.sample ? `<p class="banner">Sample brain with made-up data</p>` : ""}`;
-const stateDot = (it, color) => `<i class="dot ${it.state === "pulse" ? "pulse" : ""}" style="--c:${color}"></i>`;
-const vidLink = (it) => it.video_id && /^[\w-]{11}$/.test(it.video_id) ? `<a href="https://www.youtube.com/watch?v=${esc(it.video_id)}" target="_blank" rel="noopener">${esc(it.video_title || it.video_id)}</a>` : esc(it.video_title || it.video_id || "channel-wide");
-function itemRows(rt, ref) {
-  if (!rt.items.length) return `<p class="muted">No data on this root yet. Its neurons stay dim until YTAS logs a finding or fix here.</p>`;
-  return rt.items.map((it, i) => `<div class="item-row" data-item="${ref}:${i}">${stateDot(it, rt.color)}<div><b>${esc(it.text)}</b><div class="d">${vidLink(it)}${it.date ? " · " + esc(fmtDate(it.date)) : ""} · ${esc(it.detail || STATE_TXT[it.state])}</div></div></div>`).join("");
-}
-function openItem(it, rt) {
-  if (!it) return;
-  const where = rt.brain === "ytas" ? `${rt.label} · ${rt.name}` : `${rt.brain.toUpperCase()} · ${rt.label}`;
-  openPanel(`${ptop(where)}
-    <h2>${it.state === "pulse" ? "Fix still needed" : it.kind === "finding" ? "Report finding" : it.kind === "edit" ? "Edit component" : "Fix applied"}</h2>
-    <p style="margin-top:10px;font-size:1.05rem"><b>${esc(it.text)}</b></p>
-    <h3>Video</h3><p>${vidLink(it)}</p>
-    ${it.date ? `<h3>Date</h3><p>${esc(fmtDate(it.date))}</p>` : ""}
-    <h3>State</h3><p><span class="pill" style="--c:${it.state === "pulse" ? "#fff" : rt.color}">${it.state === "pulse" ? "bright pulse" : "soft glow"}</span> ${esc(it.detail || STATE_TXT[it.state])}</p>
-    ${it.id ? `<h3>Fix ID</h3><p class="muted">${esc(it.id)}${it.priority ? " · " + esc(it.priority) + " priority" : ""}</p>` : ""}`);
-}
-function openRoot(rt) {
-  const ref = ROOTS.indexOf(rt) >= 0 ? ROOTS.indexOf(rt) : rt.brain;
-  openPanel(`${ptop(rt.brain.toUpperCase())}<h2>${esc(rt.brain === "ytas" ? rt.label + " · " + rt.name : rt.label)}</h2>
-    <p class="muted">${rt.items.length} lit neuron${rt.items.length === 1 ? "" : "s"}: ${rt.items.filter((i) => i.state === "pulse").length} pulsing, ${rt.items.filter((i) => i.state !== "pulse").length} glowing.</p>
-    <h3>Neurons</h3>${itemRows(rt, ref)}`);
-}
-function openBrain(id) {
-  if (!B) { openHelp(); return; }
-  const b = brain(id), roots = ROOTS.filter((r) => r.brain === id && !r.link);
-  const rootList = roots.map((rt) => { const i = ROOTS.indexOf(rt), pz = rt.items.filter((x) => x.state === "pulse").length; return `<div class="item-row" style="cursor:pointer" data-root="${i}"><i class="dot ${pz ? "pulse" : ""}" style="--c:${rt.items.length ? rt.color : "var(--skip)"}"></i><div><b>${esc(rt.brain === "ytas" ? rt.label + " · " + rt.name : rt.label)}</b><div class="d">${rt.items.length} lit · ${pz} pulsing</div></div></div>`; }).join("");
-  let body = "";
-  if (id === "ytas") {
-    const reps = B.ytas.reports || [], learn = (B.ytas.learnings || []).slice(-8).reverse();
-    body = `<p class="muted">Runs every day at 6:00 AM Manila time. Reads your channel through Google Cloud, read-only, and writes the reports these roots light up from.</p>
-      <h3>Skills</h3>${rootList}
-      <h3>Reports</h3>${reps.length ? reps.map((r) => `<div class="item-row"><i class="dot" style="--c:${r.early ? "var(--warn)" : "var(--ok)"}"></i><div><b>${esc(r.title || r.video_id)}</b><div class="d">${r.early ? "EARLY DATA, rechecked after day 7" : "full data"}</div></div></div>`).join("") : `<p class="muted">No reports yet.</p>`}
-      <h3>Latest learnings</h3>${learn.length ? learn.map((l) => `<div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div><b>${esc(l.fix)}</b><div class="d">${esc(fmtDate(l.date))} · ${esc(l.video_id)} · ${esc(l.status)}</div></div></div>`).join("") : `<p class="muted">None yet.</p>`}`;
-  } else if (id === "jarvis") {
-    const rot = B.jarvis.rotation || {}, tr = B.jarvis.in_transit || {};
-    const rotRow = (k, label) => rot[k] ? `<div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div><b>${label}</b><div class="d">Used: ${esc((rot[k].used || []).join(", ") || "none")} · Drafted: ${esc((rot[k].drafted || []).join(", ") || "none")}<br>Left in this rotation: ${esc((rot[k].remaining || []).join(", ") || "none")}</div></div></div>` : "";
-    body = `<p class="muted">Holds your two script prompts. Receives YTAS's feedback one way and routes each fix to his child: VIDEOS or SHORTS. Every script is written from the prompt plus that child's rules.</p>
-      <h3>Script prompts</h3>
-      <div class="item-row"><i class="dot" style="--c:#d39bff"></i><div><b>${esc(B.jarvis.prompts?.videos || "missing")}</b><div class="d">long-form · jarvis/base-prompt.md</div></div></div>
-      <div class="item-row"><i class="dot" style="--c:#7ff0c8"></i><div><b>${esc(B.jarvis.prompts?.shorts || "missing")}</b><div class="d">Shorts · jarvis/base-prompt-shorts.md</div></div></div>
-      <h3>In transit</h3><p class="muted">${(tr.videos || []).length} fix${(tr.videos || []).length === 1 ? "" : "es"} on the way to VIDEOS, ${(tr.shorts || []).length} to SHORTS. They become rules on JARVIS's next run.</p>
-      <h3>Pillar rotation</h3>${rotRow("short", "Shorts")}${rotRow("long", "Long-form")}
-      <h3>Scripts written</h3><p class="muted">${B.jarvis.scripts ?? 0}</p>`;
-  } else {
-    const all = (B[id].roots.all || []);
-    body = `<p class="muted">${id === "videos" ? "Long-form scripts, parts A to G of your script prompt." : "Shorts, the five beats of your Shorts prompt."} A neuron pulses when JARVIS received the fix and no script has used it yet, and glows once a script used it.</p>
-      <h3>Parts</h3>${rootList}
-      <h3>Whole script</h3>${all.length ? itemRows({ items: all, color: id === "videos" ? "#d39bff" : "#7ff0c8" }, id) : `<p class="muted">No whole-script fixes.</p>`}`;
-  }
-  openPanel(`${ptop(b.name)}<h2>${esc(b.name)}</h2><p class="muted" style="margin-top:2px">${esc(b.sub)}</p>${body}`);
-  panel.querySelectorAll("[data-root]").forEach((el) => (el.onclick = () => openRoot(ROOTS[+el.dataset.root])));
-}
-function openHelp() {
-  openPanel(`${ptop("Help")}<h2>How the brain map works</h2>
-    <p class="muted">YTAS runs on your laptop every day at 6:00 AM Manila time, then writes <b>my-video\\web\\data\\brain.json</b>. This page only reads that file. It has no token or API key, calls no API, and sends nothing anywhere.</p>
-    <h3>Load the data</h3>
-    <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Click the <b>refresh</b> icon and choose <b>my-video\\web\\data</b> once. The page opens the newest data on each visit (Edge and Chrome).</div></div>
-    <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Or click the <b>upload</b> icon and choose <b>brain.json</b>, or drag it onto the page.</div></div>
-    <h3>Reading the map</h3>
-    <div class="item-row"><i class="dot pulse" style="--c:var(--accent)"></i><div>Bright pulse: a fix still needed, or a fix JARVIS received and no script has used yet.</div></div>
-    <div class="item-row"><i class="dot" style="--c:var(--accent)"></i><div>Soft glow: a report finding, or a fix that was applied or used in a script.</div></div>
-    <div class="item-row"><i class="dot" style="--c:rgba(255,255,255,.3)"></i><div>Dim: no data on that neuron. Hover or click a lit neuron for the text, the video and the date.</div></div>
-    <h3>Privacy</h3>
-    <p class="muted">The data stays in this browser. The map remembers the last file and the connected folder on this device until you click Forget.</p>
-    <div class="row"><button class="btn ghost" id="hSample">View sample</button><button class="btn ghost" id="hForget">Forget data</button></div>`);
-  $("hSample").onclick = () => { closePanel(); useBrain(JSON.parse($("sample").textContent), false); };
-  $("hForget").onclick = async () => { store.set("valora.brain", null); await idbSet("dir", null); B = null; DIR = null; setFolderBtn(false); buildMap(); renderAll(); closePanel(); toast("Brain data and folder removed from this browser."); };
-}
-$("moreBtn").onclick = openHelp;
-$("fullBtn").onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); } catch { toast("Full screen is not available in this browser."); } };
-function openSummary() {
-  if (!B) { openHelp(); return; }
-  const real = ROOTS.filter((r) => !r.link), allRoots = [...real, ...["videos", "shorts"].map((id) => ({ brain: id, key: "all", label: "Whole script", name: "Whole script", color: id === "videos" ? "#d39bff" : "#7ff0c8", items: B[id].roots.all || [] }))];
-  const count = (id, st) => allRoots.filter((r) => r.brain === id).reduce((s, r) => s + r.items.filter((i) => !st || i.state === st).length, 0);
-  const pulsing = allRoots.flatMap((rt) => rt.items.map((it, i) => ({ it, rt, i }))).filter((x) => x.it.state === "pulse");
-  openPanel(`${ptop("Summary")}<h2>All four brains</h2>
-    <div class="kpis" style="margin-top:12px">
-      ${BRAINS.filter((b) => b.id !== "jarvis").map((b) => `<div class="kpi"><b>${count(b.id)}</b><span>${b.name} lit</span></div>`).join("")}
-      <div class="kpi"><b style="color:#fff">${pulsing.length}</b><span>Pulsing</span></div>
-      <div class="kpi"><b>${esc(fmtDate(B.generated_at))}</b><span>Data date</span></div>
+  <!-- Non-blocking Toast Notification -->
+  <div id="toastBanner" class="fixed bottom-16 left-1/2 -translate-x-1/2 z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+    <div id="toastText" class="px-4 py-2 rounded-full glass-panel font-mono-tech text-xs text-sky-300 border border-sky-400/40 shadow-lg">
+      Layout exported
     </div>
-    <div class="card"><h2 class="sec">Still pulsing</h2>${pulsing.length ? pulsing.map(({ it, rt }) => `<div class="item-row">${stateDot(it, rt.color)}<div><b>${esc(it.text)}</b><div class="d">${esc(rt.brain.toUpperCase())} · ${esc(rt.brain === "ytas" ? rt.label : rt.label)} · ${vidLink(it)}${it.date ? " · " + esc(fmtDate(it.date)) : ""}</div></div></div>`).join("") : `<p class="muted">Nothing pulsing. Every fix is applied or used.</p>`}</div>`, true);
-}
-$("dashBtn").onclick = openSummary;
-function setLegend(open) { $("legendPop").hidden = !open; $("infoBtn").setAttribute("aria-expanded", String(open)); }
-$("infoBtn").onclick = (e) => { e.stopPropagation(); setLegend($("legendPop").hidden); };
-document.addEventListener("click", (e) => { if (!e.target.closest("#legendWrap")) setLegend(false); });
+  </div>
 
-/* =========================================================
-   SHARED
-   ========================================================= */
-const fmtDate = (d) => { const t = new Date(d.length === 10 ? d + "T00:00:00" : d); return isNaN(t) ? String(d) : t.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" }); };
-function renderAll() { $("tagline").textContent = B ? fmtDate(B.generated_at) + (B.sample ? " · sample" : "") : "No brain data loaded"; }
-let toastT;
-function toast(m) { const t = $("toast"); t.textContent = m; t.style.display = "block"; clearTimeout(toastT); toastT = setTimeout(() => (t.style.display = "none"), 3500); }
 
-// For automated checks: counts of lit neurons per root and their states. Read-only.
-window.brainMapStats = () => ROOTS.filter((r) => !r.link).map((r) => ({ brain: r.brain, key: r.key, data: r.items.length,
-  lit: NEURONS.filter((n) => n.root === r && n.item).length, pulse: NEURONS.filter((n) => n.root === r && n.item && n.item.state === "pulse").length,
-  glow: NEURONS.filter((n) => n.root === r && n.item && n.item.state === "glow").length, dim: NEURONS.filter((n) => n.root === r && !n.item).length }))
-  .concat(["videos", "shorts"].map((id) => ({ brain: id, key: "all", data: (B ? B[id].roots.all || [] : []).length, lit: HALOS.filter((h) => h.root.brain === id && h.item).length,
-    pulse: HALOS.filter((h) => h.root.brain === id && h.item && h.item.state === "pulse").length, glow: HALOS.filter((h) => h.root.brain === id && h.item && h.item.state === "glow").length })));
-window.brainMapNeuron = (brainId, key, i) => { const n = NEURONS.filter((x) => x.root.brain === brainId && x.root.key === key && x.item)[i]; return n ? [n.sx, n.sy] : null; };
-window.brainMapLoad = (b) => useBrain(b, false, true);
+  <script>
+  /* Jarvis data layer: reads brain.json (local file or local folder only; nothing is fetched)
+     and lights the root tips: one tip per finding or fix, the first ones nearest the centre. */
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} } };
+    const STATE_TXT = { pulse: 'Fix still needed · not used yet', glow: 'Finding · or fix applied / used' };
+    const fmtDate = (d) => { if (!d) return ''; const t = new Date(String(d).length === 10 ? d + 'T00:00:00' : d); return isNaN(t) ? String(d) : t.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }); };
+    const DATA_KEY = { YTAS: 'ytas', VIDEOS: 'videos', SHORTS: 'shorts' };
+    let B = null, DIR = null;
+    const M = () => window.JarvisMap;
 
-try { const saved = JSON.parse(store.get("valora.brain")); if (saved && !validate(saved)) B = saved; } catch {}
-buildMap();
-renderAll();
-requestAnimationFrame(frame);
-(async () => {
-  setFolderBtn(false);
-  if (!canFolder) return;
-  const saved = await idbGet("dir");
-  if (!saved) return;
-  try { if ((await saved.queryPermission({ mode: "read" })) === "granted") await loadFolder(saved, true); } catch {}
-})();
-</script>
+    function validate(b) {
+      if (!b || b.schema !== 'valora-brain/1') return 'This file is not brain.json (schema must be valora-brain/1).';
+      if (!b.ytas || !b.ytas.roots || !b.videos || !b.shorts || !b.jarvis) return 'brain.json is missing ytas, jarvis, videos or shorts.';
+      return null;
+    }
+    const itemsOf = (brainId, node) => { const k = DATA_KEY[brainId]; return (B && k && B[k].roots && B[k].roots[node.key]) || []; };
+
+    // Fill every node's roots from the data: tip k holds item k, ordered from the centre of the fan outward.
+    function applyData() {
+      const map = M(); if (!map) return;
+      const count = map.state.geometry.rootsPerNode;
+      map.updateRootsCount(count);
+      map.brains.forEach((brain) => brain.nodes.forEach((node) => {
+        const items = itemsOf(brain.id, node), c = Math.floor(count / 2);
+        const order = node.roots.map((_, i) => i).sort((a, b) => Math.abs(a - c) - Math.abs(b - c) || a - b);
+        node.roots.forEach((r) => { r.item = null; r.lit = false; r.pulsing = false; });
+        order.forEach((ri, k) => { const it = items[k]; if (!it) return; const r = node.roots[ri]; r.item = it; r.lit = true; r.pulsing = it.state === 'pulse'; });
+        node.items = items;
+      }));
+      $('dateLabel').textContent = dateText();
+      $('emptyBox').classList.toggle('hidden', !!B);
+    }
+    const dateText = () => (B ? fmtDate(B.generated_at) + (B.sample ? ' • sample' : '') : 'No brain data loaded');
+
+    function useBrain(b, remember, quiet) {
+      const err = validate(b);
+      if (err) { M().showToast(err); return false; }
+      B = b;
+      if (remember) store.set('valora.brain', JSON.stringify(b));
+      applyData();
+      if (!quiet) M().showToast(b.sample ? 'Showing the sample brain with made-up data' : `Loaded brain data from ${fmtDate(b.generated_at)}`);
+      return true;
+    }
+    function readFile(f) { const fr = new FileReader(); fr.onload = () => { try { useBrain(JSON.parse(fr.result), true); } catch { M().showToast('That file is not valid JSON.'); } }; fr.readAsText(f); }
+
+    // folder access (Edge and Chrome): remembered in this browser
+    const canFolder = 'showDirectoryPicker' in window;
+    const idb = () => new Promise((res, rej) => { const q = indexedDB.open('valora-brain', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); });
+    async function idbGet(k) { try { const db = await idb(); return await new Promise((r) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch { return null; } }
+    async function idbSet(k, v) { try { const db = await idb(); await new Promise((r) => { const t = db.transaction('kv', 'readwrite'); const st = t.objectStore('kv'); v === null ? st.delete(k) : st.put(v, k); t.oncomplete = r; t.onerror = r; }); } catch {} }
+    async function findBrain(dir) {
+      for (const path of [[], ['data'], ['web', 'data']]) {
+        try { let d = dir; for (const p of path) d = await d.getDirectoryHandle(p); const f = await (await d.getFileHandle('brain.json')).getFile(); return JSON.parse(await f.text()); } catch {}
+      }
+      return null;
+    }
+    async function loadFolder(dir, quiet) {
+      const b = await findBrain(dir);
+      if (!b) { if (!quiet) M().showToast('No brain.json there. Choose my-video\\web\\data.'); return null; }
+      if (!useBrain(b, true, quiet)) return null;
+      DIR = dir; setFolderBtn(true); return dir;
+    }
+    function setFolderBtn(connected) { const b = $('btnFolder'); b.classList.toggle('hidden', !canFolder); const t = connected ? 'Refresh brain data' : 'Connect brain data folder'; b.title = t; b.setAttribute('aria-label', t); $('emptyFolder').classList.toggle('hidden', !canFolder); }
+    async function folderClick() {
+      try {
+        if (DIR) { await loadFolder(DIR); return; }
+        const saved = await idbGet('dir');
+        if (saved && (await saved.requestPermission({ mode: 'read' })) === 'granted' && (await loadFolder(saved))) return;
+        const dir = await window.showDirectoryPicker({ id: 'valora-brain', mode: 'read' });
+        if (await loadFolder(dir)) await idbSet('dir', dir);
+      } catch (e) { if (e && e.name !== 'AbortError') M().showToast('Could not open that folder.'); }
+    }
+
+    // ---- boxes ----
+    const vidLink = (it) => it.video_id && /^[\w-]{11}$/.test(it.video_id) ? `<a class="underline" href="https://www.youtube.com/watch?v=${esc(it.video_id)}" target="_blank" rel="noopener">${esc(it.video_title || it.video_id)}</a>` : esc(it.video_title || it.video_id || 'channel-wide');
+    const dot = (it, color) => `<i class="dot ${it.state === 'pulse' ? 'pulse' : ''}" style="--c:${color}"></i>`;
+    const OPEN = [];
+    function openBox(title, html) {
+      $('detailTitle').textContent = title; $('detailBody').innerHTML = (B && B.sample ? '<p class="text-amber-300 text-[11px]">Sample brain with made-up data</p>' : '') + html;
+      bindRows($('detailBody')); $('modalDetail').classList.remove('hidden'); showTip(null);
+    }
+    function bindRows(root) { root.querySelectorAll('[data-open]').forEach((el) => (el.onclick = () => { const f = OPEN[+el.dataset.open]; if (f) f(); })); }
+    const opener = (f) => OPEN.push(f) - 1;
+    function itemRows(items, color, node, brainId) {
+      if (!items.length) return '<p class="text-slate-400">No data here yet. Its tips stay hollow until YTAS logs a finding or fix.</p>';
+      return items.map((it) => `<div class="row-item" data-open="${opener(() => openItem(it, node, brainId))}">${dot(it, color)}<div><b class="text-slate-100">${esc(it.text)}</b><div class="text-slate-400">${vidLink(it)}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''} · ${esc(it.detail || STATE_TXT[it.state])}</div></div></div>`).join('');
+    }
+    function openItem(it, node, brainId) {
+      if (!it) return;
+      const color = node ? node.color : '#38bdf8';
+      openBox(node ? `${brainId} · ${node.title}` : brainId, `
+        <h4 class="font-cosmic text-base text-white">${it.state === 'pulse' ? 'Fix still needed' : it.kind === 'finding' ? 'Report finding' : it.kind === 'edit' ? 'Edit component' : 'Fix applied'}</h4>
+        <p class="text-sm text-slate-100"><b>${esc(it.text)}</b></p>
+        <p><span class="text-slate-400 uppercase tracking-wider text-[10px] block">Video</span>${vidLink(it)}</p>
+        ${it.date ? `<p><span class="text-slate-400 uppercase tracking-wider text-[10px] block">Date</span>${esc(fmtDate(it.date))}</p>` : ''}
+        <p><span class="text-slate-400 uppercase tracking-wider text-[10px] block">State</span><span style="color:${it.state === 'pulse' ? '#fff' : color}">${it.state === 'pulse' ? 'Bright pulse' : 'Lit'}</span> · ${esc(it.detail || STATE_TXT[it.state])}</p>
+        ${it.id ? `<p class="text-slate-400">Fix ID ${esc(it.id)}${it.priority ? ' · ' + esc(it.priority) + ' priority' : ''}</p>` : ''}`);
+    }
+    function openNode(node, brainId) {
+      const items = node.items || [], pz = items.filter((i) => i.state === 'pulse').length, cap = M().state.geometry.rootsPerNode;
+      openBox(`${brainId} · ${node.title}`, `
+        <p class="text-slate-400">${node.slug ? esc(node.slug) + ' · ' : ''}${items.length} item${items.length === 1 ? '' : 's'}: ${pz} pulsing, ${items.length - pz} lit.${items.length > cap ? ` The map shows the first ${cap} on its tips; all are listed here.` : ''}</p>
+        ${itemRows(items, node.color, node, brainId)}`);
+    }
+    function openBrain(id) {
+      if (!B) { openHelp(); return; }
+      const brain = M().getBrainById(id);
+      const rows = brain.nodes.map((n) => { const it = n.items || [], pz = it.filter((x) => x.state === 'pulse').length; return `<div class="row-item" data-open="${opener(() => openNode(n, id))}"><i class="dot ${pz ? 'pulse' : ''}" style="--c:${it.length ? n.color : 'rgba(203,213,225,.4)'}"></i><div><b class="text-slate-100">${esc(n.title)}</b><div class="text-slate-400">${it.length} lit · ${pz} pulsing</div></div></div>`; }).join('');
+      let body = '';
+      if (id === 'YTAS') {
+        const reps = B.ytas.reports || [], learn = (B.ytas.learnings || []).slice(-8).reverse();
+        body = `<p class="text-slate-400">Runs every day at 6:00 AM Manila time. Reads your channel through Google Cloud, read-only, and writes the reports these roots light up from.</p>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-1">Skills</h4>${rows}
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Reports</h4>${reps.length ? reps.map((r) => `<div class="row-item"><i class="dot" style="--c:${r.early ? '#fbbf24' : '#34d399'}"></i><div><b class="text-slate-100">${esc(r.title || r.video_id)}</b><div class="text-slate-400">${r.early ? 'EARLY DATA, rechecked after day 7' : 'full data'}</div></div></div>`).join('') : '<p class="text-slate-400">No reports yet.</p>'}
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Latest learnings</h4>${learn.length ? learn.map((l) => `<div class="row-item"><i class="dot" style="--c:#c4b5fd"></i><div><b class="text-slate-100">${esc(l.fix)}</b><div class="text-slate-400">${esc(fmtDate(l.date))} · ${esc(l.video_id)} · ${esc(l.status)}</div></div></div>`).join('') : '<p class="text-slate-400">None yet.</p>'}`;
+      } else if (id === 'JARVIS') {
+        const rot = B.jarvis.rotation || {}, tr = B.jarvis.in_transit || {};
+        const rotRow = (k, label) => rot[k] ? `<div class="row-item"><i class="dot" style="--c:#c4b5fd"></i><div><b class="text-slate-100">${label}</b><div class="text-slate-400">Used: ${esc((rot[k].used || []).join(', ') || 'none')} · Drafted: ${esc((rot[k].drafted || []).join(', ') || 'none')}<br>Left in this rotation: ${esc((rot[k].remaining || []).join(', ') || 'none')}</div></div></div>` : '';
+        body = `<p class="text-slate-400">Holds your two script prompts. Receives YTAS's feedback one way and routes each fix to VIDEOS or SHORTS.</p>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-1">Script prompts</h4>
+          <div class="row-item"><i class="dot" style="--c:#d39bff"></i><div><b class="text-slate-100">${esc(B.jarvis.prompts?.videos || 'missing')}</b><div class="text-slate-400">long-form · jarvis/base-prompt.md</div></div></div>
+          <div class="row-item"><i class="dot" style="--c:#7ff0c8"></i><div><b class="text-slate-100">${esc(B.jarvis.prompts?.shorts || 'missing')}</b><div class="text-slate-400">Shorts · jarvis/base-prompt-shorts.md</div></div></div>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">In transit</h4><p class="text-slate-400">${(tr.videos || []).length} fix${(tr.videos || []).length === 1 ? '' : 'es'} on the way to VIDEOS, ${(tr.shorts || []).length} to SHORTS.</p>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Pillar rotation</h4>${rotRow('short', 'Shorts')}${rotRow('long', 'Long-form')}
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Scripts written</h4><p class="text-slate-400">${B.jarvis.scripts ?? 0}</p>`;
+      } else {
+        const k = DATA_KEY[id], all = (B[k].roots.all || []);
+        body = `<p class="text-slate-400">${id === 'VIDEOS' ? 'Long-form scripts, parts A to G of your script prompt.' : 'Shorts, the five beats of your Shorts prompt.'} A tip pulses when JARVIS received the fix and no script has used it yet, and stays lit once a script used it.</p>
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-1">Parts</h4>${rows}
+          <h4 class="text-[10px] uppercase tracking-wider text-slate-400 pt-2">Whole script</h4>${all.length ? itemRows(all, id === 'VIDEOS' ? '#d39bff' : '#7ff0c8', null, id) : '<p class="text-slate-400">No whole-script fixes.</p>'}`;
+      }
+      openBox(id, body);
+    }
+    function summaryHTML() {
+      if (!B) return '<p class="text-slate-400">Load brain.json to see the summary.</p>';
+      const brains = M().brains.filter((b) => b.nodes.length);
+      const all = [];
+      brains.forEach((b) => b.nodes.forEach((n) => (n.items || []).forEach((it) => all.push({ it, n, b }))));
+      ['videos', 'shorts'].forEach((k) => (B[k].roots.all || []).forEach((it) => all.push({ it, n: { title: 'Whole script', color: k === 'videos' ? '#d39bff' : '#7ff0c8' }, b: { id: k.toUpperCase() } })));
+      const pulsing = all.filter((x) => x.it.state === 'pulse');
+      const count = (id) => all.filter((x) => x.b.id === id).length;
+      return `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          ${['YTAS', 'VIDEOS', 'SHORTS'].map((id) => `<div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">${id} lit</span><span class="text-sky-300 font-semibold text-base">${count(id)}</span></div>`).join('')}
+          <div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">Pulsing</span><span class="text-white font-semibold text-base">${pulsing.length}</span></div>
+          <div class="p-2.5 rounded-xl bg-slate-950/65 border border-slate-800"><span class="text-slate-400 block text-[10px] uppercase">Data date</span><span class="text-slate-200 font-semibold">${esc(fmtDate(B.generated_at))}</span></div>
+        </div>
+        <div><div class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">Still pulsing</div>${pulsing.length ? pulsing.map(({ it, n, b }) => `<div class="row-item" data-open="${opener(() => openItem(it, n.key ? n : null, b.id))}">${dot(it, n.color)}<div><b class="text-slate-100">${esc(it.text)}</b><div class="text-slate-400">${esc(b.id)} · ${esc(n.title)} · ${vidLink(it)}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''}</div></div></div>`).join('') : '<p class="text-slate-400">Nothing pulsing. Every fix is applied or used.</p>'}</div>`;
+    }
+    function openHelp() {
+      openBox('Help', `
+        <p class="text-slate-400">YTAS runs on your laptop every day at 6:00 AM Manila time, then writes <b class="text-white">my-video\\web\\data\\brain.json</b>. This page only reads that file. It has no token or API key, calls no API, and sends nothing anywhere.</p>
+        <div class="row-item"><i class="dot" style="--c:#38bdf8"></i><div>Click the <b class="text-white">refresh</b> icon and choose <b class="text-white">my-video\\web\\data</b> once. The page opens the newest data on each visit (Edge and Chrome).</div></div>
+        <div class="row-item"><i class="dot" style="--c:#38bdf8"></i><div>Or click the <b class="text-white">upload</b> icon and choose <b class="text-white">brain.json</b>, or drag it onto the page.</div></div>
+        <div class="row-item"><i class="dot" style="--c:#fbbf24"></i><div>The <b class="text-white">lock</b> keeps the layout as it is. Unlock it in the top bar or in the sliders panel to change brain positions, sizes and roots; changes are saved in this browser.</div></div>
+        <p class="text-slate-400">The data and layout stay in this browser until you click Forget.</p>
+        <div class="flex gap-2 pt-1"><button id="hSample" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600/50 text-slate-200">View sample</button><button id="hForget" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-600/50 text-slate-200">Forget data</button></div>`);
+      $('hSample').onclick = () => { $('modalDetail').classList.add('hidden'); useBrain(JSON.parse($('sample').textContent), false); };
+      $('hForget').onclick = async () => { store.set('valora.brain', null); await idbSet('dir', null); B = null; DIR = null; setFolderBtn(false); applyData(); $('modalDetail').classList.add('hidden'); M().showToast('Brain data and folder removed from this browser'); };
+    }
+
+    function showTip(e, tip, brain, node) {
+      const el = $('tip');
+      if (!e || (!tip && !brain && !node)) { el.style.display = 'none'; return; }
+      if (tip) {
+        const it = tip.root.item;
+        if (!it) { el.innerHTML = `<b>${esc(tip.nodeTitle)}</b><br><span class="text-slate-400">No data on this tip yet</span>`; }
+        else el.innerHTML = `<b>${esc(it.text)}</b><br><span class="text-slate-400">${esc(it.video_title || it.video_id || 'channel-wide')}${it.date ? ' · ' + esc(fmtDate(it.date)) : ''}</span><br><span class="st" style="color:${it.state === 'pulse' ? '#fff' : tip.node.color}">${esc(it.detail || STATE_TXT[it.state])}</span>`;
+      } else if (node) {
+        const it = node.node.items || [];
+        el.innerHTML = `<b>${esc(node.node.title)}</b><br><span class="text-slate-400">${it.length} lit · ${it.filter((i) => i.state === 'pulse').length} pulsing · click to list</span>`;
+      } else {
+        const lit = brain.nodes.reduce((s, n) => s + (n.items || []).length, 0);
+        el.innerHTML = `<b>${esc(brain.title)}</b><br><span class="text-slate-400">${brain.nodes.length ? lit + ' lit · ' : ''}click for details${M().state.locked ? '' : ' · drag to move'}</span>`;
+      }
+      el.style.display = 'block';
+      el.style.left = Math.min(e.clientX + 14, innerWidth - 310) + 'px';
+      el.style.top = e.clientY + 14 + 'px';
+    }
+
+    function init() {
+      $('btnLoad').onclick = () => $('file').click();
+      $('emptyLoad').onclick = () => $('file').click();
+      $('emptySample').onclick = () => useBrain(JSON.parse($('sample').textContent), false);
+      $('file').onchange = (e) => { if (e.target.files[0]) readFile(e.target.files[0]); e.target.value = ''; };
+      $('btnFolder').onclick = folderClick; $('emptyFolder').onclick = folderClick;
+      $('btnHelp').onclick = openHelp;
+      $('btnCloseDetail').onclick = () => $('modalDetail').classList.add('hidden');
+      $('modalDetail').addEventListener('click', (e) => { if (e.target === $('modalDetail')) $('modalDetail').classList.add('hidden'); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') ['modalDetail', 'modalInspector', 'modalInfo'].forEach((id) => $(id).classList.add('hidden')); });
+      let depth = 0;
+      addEventListener('dragenter', (e) => { e.preventDefault(); depth++; $('drop').style.display = 'flex'; });
+      addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; $('drop').style.display = 'none'; } });
+      addEventListener('dragover', (e) => e.preventDefault());
+      addEventListener('drop', (e) => { e.preventDefault(); depth = 0; $('drop').style.display = 'none'; const f = e.dataTransfer.files[0]; if (f) readFile(f); });
+      // The old page kept a GitHub token here; this page never uses one.
+      store.set('jarvis.ghToken', null);
+      try { const saved = JSON.parse(store.get('valora.brain')); if (saved && !validate(saved)) B = saved; } catch {}
+      applyData();
+      setFolderBtn(false);
+      (async () => { if (!canFolder) return; const saved = await idbGet('dir'); if (!saved) return; try { if ((await saved.queryPermission({ mode: 'read' })) === 'granted') await loadFolder(saved, true); } catch {} })();
+    }
+
+    // For automated checks: data items vs lit tips per skill or part. Read-only.
+    window.brainMapStats = () => M().brains.flatMap((b) => b.nodes.map((n) => ({ brain: b.id, key: n.key, data: (n.items || []).length,
+      lit: n.roots.filter((r) => r.lit).length, pulse: n.roots.filter((r) => r.pulsing).length, tips: n.roots.length })));
+    window.brainMapLoad = (b) => useBrain(b, false, true);
+    window.JarvisData = { init, applyData, openItem, openNode, openBrain, summaryHTML, bindRows, showTip, dateText };
+  })();
+  </script>
+  <script>
+    /**
+     * 4-Brain Neural-Cosmic Mind-Map Visualization Engine
+     * Renders YTAS, JARVIS, VIDEOS, and SHORTS with swirling particle cores,
+     * inner ring nodes, 7 organic dendritic roots per node, animated energy pulses,
+     * and live adjustment sliding bars.
+     */
+    (function () {
+      const canvas = document.getElementById('cosmicCanvas');
+      const ctx = canvas.getContext('2d');
+
+      // -----------------------------------------------------------------------
+      // 1. EXACT DATA STRUCTURE FOR THE 4 BIG BRAINS
+      // -----------------------------------------------------------------------
+      const PRESETS = {
+        compact: {
+          label: 'Compact',
+          globalSpread: 1.0,
+          positions: {
+            YTAS:   { x: -275, y: 5,    scale: 1.0 },
+            JARVIS: { x: 12,   y: 5,    scale: 1.0 },
+            VIDEOS: { x: 255,  y: -175, scale: 0.92 },
+            SHORTS: { x: 255,  y: 185,  scale: 0.92 }
+          },
+          geometry: {
+            rootsPerNode: 7,
+            ringRadius: 68,
+            rootLength: 76,
+            fanSpreadDeg: 38,
+            labelOffset: 20,
+            organicCurve: 58
+          }
+        },
+        balanced: {
+          label: 'Balanced',
+          globalSpread: 1.0,
+          positions: {
+            YTAS:   { x: -395, y: 0,    scale: 1.0 },
+            JARVIS: { x: 0,    y: 0,    scale: 1.05 },
+            VIDEOS: { x: 350,  y: -215, scale: 0.96 },
+            SHORTS: { x: 350,  y: 225,  scale: 0.96 }
+          },
+          geometry: {
+            rootsPerNode: 7,
+            ringRadius: 72,
+            rootLength: 84,
+            fanSpreadDeg: 42,
+            labelOffset: 22,
+            organicCurve: 64
+          }
+        },
+        wide: {
+          label: 'Wide',
+          globalSpread: 1.0,
+          positions: {
+            YTAS:   { x: -520, y: 0,    scale: 1.08 },
+            JARVIS: { x: 0,    y: 0,    scale: 1.12 },
+            VIDEOS: { x: 470,  y: -270, scale: 1.04 },
+            SHORTS: { x: 470,  y: 280,  scale: 1.04 }
+          },
+          geometry: {
+            rootsPerNode: 7,
+            ringRadius: 84,
+            rootLength: 100,
+            fanSpreadDeg: 46,
+            labelOffset: 26,
+            organicCurve: 70
+          }
+        }
+      };
+
+      // Deterministic pseudo-random helper for organic root morphology
+      function seededFrac(seed) {
+        const s = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+        return s - Math.floor(s);
+      }
+
+      // Build a single richly organic dendritic tendril descriptor
+      function createSingleRoot(seedOffset, index, isLit, isPulsing) {
+        const f1 = seededFrac(seedOffset + index * 3.17);
+        const f2 = seededFrac(seedOffset * 1.7 + index * 7.31);
+        const f3 = seededFrac(seedOffset * 2.3 + index * 11.13);
+
+        // Alternate primary S-curve polarity across the 7-tendril fan with organic variation
+        const parity = index % 2 === 0 ? 1 : -1;
+        return {
+          id: `${seedOffset}-r${index}`,
+          lit: isLit,
+          pulsing: isPulsing,
+          lengthFactor: 0.74 + f1 * 0.42, // organic length variation (0.74x to 1.16x)
+          curveSign: parity * (0.65 + f2 * 0.65),
+          harmPhase1: f1 * Math.PI * 2,
+          harmPhase2: f2 * Math.PI * 2,
+          swaySpeed: 0.75 + f3 * 0.75,
+          hasMidNode: f2 > 0.22,
+          hasFork: f3 > 0.38, // ~62% of tendrils sprout a delicate secondary mid-span micro-fork
+          forkSide: f1 > 0.5 ? 1 : -1,
+          forkLengthFactor: 0.22 + f2 * 0.14,
+          pulsePhase: (index * 0.29 + f1) % 1
+        };
+      }
+
+      // Helper to generate root tendrils for a node with specified lit/pulsing counts
+      function createRootsForNode(count, litCount, pulsingCount, seedOffset) {
+        const roots = [];
+        const centerIdx = Math.floor(count / 2);
+        for (let i = 0; i < count; i++) {
+          const distFromCenter = Math.abs(i - centerIdx);
+          const isLit = litCount > 0 && distFromCenter < litCount;
+          const isPulsing = pulsingCount > 0 && distFromCenter < pulsingCount;
+          roots.push(createSingleRoot(seedOffset, i, isLit, isPulsing));
+        }
+        return roots;
+      }
+
+      // Dynamically resize roots per node across all brains while preserving lit/pulsing states
+      function updateRootsCount(newCount) {
+        state.geometry.rootsPerNode = newCount;
+        brains.forEach((brain, bIdx) => {
+          brain.nodes.forEach((node, nIdx) => {
+            const seedOffset = (bIdx + 1) * 100 + (nIdx + 1);
+            while (node.roots.length < newCount) {
+              const idx = node.roots.length;
+              node.roots.push(createSingleRoot(seedOffset, idx, false, false));
+            }
+            if (node.roots.length > newCount) {
+              node.roots.length = newCount;
+            }
+          });
+        });
+      }
+
+      // Master Brain Definitions (7 Organic Dendritic Roots per Inner Ring Node)
+      const brains = [
+        {
+          id: 'YTAS',
+          title: 'YTAS',
+          baseX: -275,
+          baseY: 5,
+          x: -275,
+          y: 5,
+          scale: 1.0,
+          coreRadius: 34,
+          particleCount: 230,
+          palette: ['#e0f2fe', '#c4b5fd', '#7dd3fc', '#ffffff', '#fde68a'],
+          glowColor: 'rgba(139, 92, 246, 0.22)',
+          nodes: [
+            { char: 'S', title: 'SEARCH',         slug: '/yt-seo',       key: 'yt-seo',       angleDeg: -114.5, color: '#eab308', roots: [] },
+            { char: 'R', title: 'RETENTION',      slug: '/yt-retention', key: 'yt-retention', angleDeg: -81.8,  color: '#6366f1', roots: [] },
+            { char: 'N', title: 'NICHE OUTLIERS', slug: '/yt-viral',     key: 'yt-viral',     angleDeg: -49.1,  color: '#a855f7', roots: [] },
+            { char: 'A', title: 'AUDIT',          slug: '/yt-audit',     key: 'yt-audit',     angleDeg: -16.4,  color: '#38bdf8', roots: [] },
+            { char: 'S', title: 'SCRIPT',         slug: '/yt-script',    key: 'yt-script',    angleDeg: 16.4,   color: '#60a5fa', roots: [] },
+            { char: 'P', title: 'PACKAGING',      slug: '/yt-package',   key: 'yt-package',   angleDeg: 49.1,   color: '#f97316', roots: [] },
+            { char: 'E', title: 'EDIT',           slug: '/yt-edit',      key: 'yt-edit',      angleDeg: 81.8,   color: '#ec4899', roots: [] },
+            { char: 'C', title: 'COMMENTS',       slug: '/yt-comment',   key: 'yt-comment',   angleDeg: 114.5,  color: '#64748b', roots: [] },
+            { char: 'P', title: 'PLAN',           slug: '/yt-plan',      key: 'yt-plan',      angleDeg: 147.3,  color: '#14b8a6', roots: [] },
+            { char: 'S', title: 'SHORTS',         slug: '/yt-shorts',    key: 'yt-shorts',    angleDeg: 180,    color: '#22c55e', roots: [] },
+            { char: 'C', title: 'CHAPTERS',       slug: '/yt-chapters',  key: 'yt-chapters',  angleDeg: -147.3, color: '#8b5cf6', roots: [] }
+          ]
+        },
+        {
+          id: 'JARVIS',
+          title: 'JARVIS',
+          baseX: 12,
+          baseY: 5,
+          x: 12,
+          y: 5,
+          scale: 1.0,
+          coreRadius: 36,
+          particleCount: 270,
+          palette: ['#f5f3ff', '#ddd6fe', '#c084fc', '#93c5fd', '#ffffff'],
+          glowColor: 'rgba(168, 85, 247, 0.28)',
+          nodes: []
+        },
+        {
+          id: 'VIDEOS',
+          title: 'VIDEOS',
+          baseX: 255,
+          baseY: -175,
+          x: 255,
+          y: -175,
+          scale: 0.92,
+          coreRadius: 30,
+          particleCount: 195,
+          palette: ['#e9d5ff', '#bae6fd', '#f5d0fe', '#ffffff', '#fde047'],
+          glowColor: 'rgba(168, 85, 247, 0.20)',
+          nodes: [
+            { char: 'A', title: 'A · OPENING HOOK', key: 'A',             slug: null, angleDeg: 180,  color: '#38bdf8', roots: [] },
+            { char: 'B', title: 'B · THE FAMILIAR BEHAVIOR', key: 'B',    slug: null, angleDeg: -138, color: '#64748b', roots: [] },
+            { char: 'C', title: 'C · THE PSYCHOLOGY BEHIND IT', key: 'C', slug: null, angleDeg: -92,  color: '#a855f7', roots: [] },
+            { char: 'D', title: 'D · WHY OUR BRAIN DOES THIS', key: 'D',  slug: null, angleDeg: -45,  color: '#8b5cf6', roots: [] },
+            { char: 'E', title: 'E · THE REAL COST', key: 'E',            slug: null, angleDeg: 2,    color: '#d946ef', roots: [] },
+            { char: 'F', title: 'F · THE BIGGER PICTURE', key: 'F',       slug: null, angleDeg: 54,   color: '#f59e0b', roots: [] },
+            { char: 'G', title: 'G · CLOSING INSIGHT', key: 'G',          slug: null, angleDeg: 116,  color: '#f43f5e', roots: [] }
+          ]
+        },
+        {
+          id: 'SHORTS',
+          title: 'SHORTS',
+          baseX: 255,
+          baseY: 185,
+          x: 255,
+          y: 185,
+          scale: 0.92,
+          coreRadius: 30,
+          particleCount: 195,
+          palette: ['#ccfbf1', '#bbf7d0', '#bae6fd', '#ffffff', '#fef08a'],
+          glowColor: 'rgba(56, 189, 248, 0.18)',
+          nodes: [
+            { char: '1', title: '1 · THE HOOK', key: '1',         slug: null, angleDeg: -90, color: '#38bdf8', roots: [] },
+            { char: '2', title: '2 · THE RECOGNITION', key: '2',  slug: null, angleDeg: -18, color: '#84cc16', roots: [] },
+            { char: '3', title: '3 · THE PSYCHOLOGY', key: '3',   slug: null, angleDeg: 54,  color: '#eab308', roots: [] },
+            { char: '4', title: '4 · THE REVELATION', key: '4',   slug: null, angleDeg: 126, color: '#a8a29e', roots: [] },
+            { char: '5', title: '5 · THE CLOSING LOOP', key: '5', slug: null, angleDeg: 198, color: '#a78bfa', roots: [] }
+          ]
+        }
+      ];
+
+      // Inter-Brain Connections
+      const bridges = [
+        { from: 'YTAS',   to: 'JARVIS', badge: 'ONE WAY', pulseColor: '#38bdf8', secondaryColor: '#c084fc', speed: 0.34, count: 3 },
+        { from: 'JARVIS', to: 'VIDEOS', badge: null,      pulseColor: '#c084fc', secondaryColor: '#e879f9', speed: 0.28, count: 2 },
+        { from: 'JARVIS', to: 'SHORTS', badge: null,      pulseColor: '#38bdf8', secondaryColor: '#a78bfa', speed: 0.28, count: 2 }
+      ];
+
+      // -----------------------------------------------------------------------
+      // 2. LAYOUT STATE, GEOMETRY PARAMETERS & CAMERA STATE
+      // -----------------------------------------------------------------------
+      const state = {
+        activePreset: 'compact',
+        selectedBrainId: 'YTAS',
+        globalSpread: 1.0,
+        geometry: { ...PRESETS.compact.geometry },
+        focusModes: ['ALL BRAINS', 'YTAS', 'JARVIS', 'VIDEOS', 'SHORTS'],
+        focusIndex: 0,
+        camera: {
+          x: 0,
+          y: 0,
+          zoom: 1.0,
+          targetX: 0,
+          targetY: 0,
+          targetZoom: 1.0
+        },
+        interaction: {
+          draggingBrain: null,
+          dragOffsetX: 0,
+          dragOffsetY: 0,
+          isPanning: false,
+          panStartX: 0,
+          panStartY: 0,
+          camStartX: 0,
+          camStartY: 0,
+          hoveredBrainId: null,
+          hoveredTip: null,
+          pinchDist: null
+        }
+      };
+
+      // Generate persistent swirling micro-particles for each brain core
+      brains.forEach((brain) => {
+        brain.particles = [];
+        for (let i = 0; i < brain.particleCount; i++) {
+          const u = Math.random();
+          const v = Math.random();
+          const radial = Math.pow(u, 0.58);
+          const theta = v * Math.PI * 2;
+          const speed = (0.15 + Math.random() * 0.45) * (Math.random() < 0.5 ? 1 : -0.6);
+          const size = 0.7 + Math.random() * 1.45;
+          const color = brain.palette[Math.floor(Math.random() * brain.palette.length)];
+          const twinklePhase = Math.random() * Math.PI * 2;
+          brain.particles.push({ radial, theta, speed, size, color, twinklePhase });
+        }
+      });
+
+      // Generate multi-layered cosmic starfield
+      const stars = [];
+      const crossStars = [];
+      function initStarfield() {
+        stars.length = 0;
+        crossStars.length = 0;
+        for (let i = 0; i < 240; i++) {
+          stars.push({
+            nx: Math.random(),
+            ny: Math.random(),
+            r: 0.45 + Math.random() * 1.25,
+            alpha: 0.2 + Math.random() * 0.65,
+            speed: 0.5 + Math.random() * 2.0,
+            phase: Math.random() * Math.PI * 2,
+            tint: Math.random() < 0.25 ? '#bae6fd' : (Math.random() < 0.2 ? '#e9d5ff' : '#ffffff')
+          });
+        }
+        const fixedCrosses = [
+          { nx: 0.555, ny: 0.175, size: 13 },
+          { nx: 0.205, ny: 0.815, size: 11 },
+          { nx: 0.825, ny: 0.785, size: 10 },
+          { nx: 0.145, ny: 0.220, size: 8 }
+        ];
+        fixedCrosses.forEach((fc, idx) => {
+          crossStars.push({
+            nx: fc.nx,
+            ny: fc.ny,
+            size: fc.size,
+            phase: idx * 1.4
+          });
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // 3. COORDINATE TRANSFORMS & DENDRITIC ROOT GEOMETRY
+      // -----------------------------------------------------------------------
+      function getBrainById(id) {
+        return brains.find((b) => b.id === id);
+      }
+
+      function recomputeBrainPositions() {
+        brains.forEach((b) => {
+          b.x = b.baseX * state.globalSpread;
+          b.y = b.baseY * state.globalSpread;
+        });
+        syncControlsUI();
+      }
+
+      function getViewportFitScale() {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        return Math.min(w / 1220, h / 720, 1.15);
+      }
+
+      function screenToWorld(clientX, clientY) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        const fit = getViewportFitScale();
+        const totalZoom = state.camera.zoom * fit;
+        return {
+          x: (clientX - w * 0.5) / totalZoom + state.camera.x,
+          y: (clientY - h * 0.5) / totalZoom + state.camera.y
+        };
+      }
+
+      // Evaluate a point on a cubic Bezier curve at parameter t in [0, 1]
+      function evalCubicBezier(p0, p1, p2, p3, t) {
+        const mt = 1 - t;
+        const mt2 = mt * mt;
+        const t2 = t * t;
+        return {
+          x: mt2 * mt * p0.x + 3 * mt2 * t * p1.x + 3 * mt * t2 * p2.x + t2 * t * p3.x,
+          y: mt2 * mt * p0.y + 3 * mt2 * t * p1.y + 3 * mt * t2 * p2.y + t2 * t * p3.y
+        };
+      }
+
+      // Compute exact world geometry for a brain's nodes and sinuous 7-tendril dendritic roots
+      function computeNodeGeometry(brain, node, time = 0) {
+        const bScale = brain.scale;
+        const rad = (node.angleDeg * Math.PI) / 180;
+        const cosA = Math.cos(rad);
+        const sinA = Math.sin(rad);
+
+        const ringR = state.geometry.ringRadius * bScale;
+        const nodeX = brain.x + cosA * ringR;
+        const nodeY = brain.y + sinA * ringR;
+        const nodeRadius = 11.5 * bScale;
+
+        const count = node.roots.length;
+        const fanRad = (state.geometry.fanSpreadDeg * Math.PI) / 180;
+        const organic = state.geometry.organicCurve / 100;
+
+        let litCount = 0;
+        let pulsingCount = 0;
+
+        const rootPaths = node.roots.map((root, i) => {
+          if (root.lit) litCount++;
+          if (root.pulsing) pulsingCount++;
+
+          const frac = count > 1 ? i / (count - 1) - 0.5 : 0;
+          const sway = Math.sin(time * root.swaySpeed + root.harmPhase1) * 0.04 * organic;
+          const branchAngle = rad + frac * fanRad + sway;
+          const bCos = Math.cos(branchAngle);
+          const bSin = Math.sin(branchAngle);
+          const bPerpX = -bSin;
+          const bPerpY = bCos;
+
+          const len = state.geometry.rootLength * bScale * root.lengthFactor;
+          const startX = nodeX + bCos * (nodeRadius + 1.5);
+          const startY = nodeY + bSin * (nodeRadius + 1.5);
+          const tipX = startX + bCos * len;
+          const tipY = startY + bSin * len;
+
+          // Multi-wave organic S-curve control points
+          const waveAmp1 = len * 0.25 * organic * root.curveSign;
+          const waveAmp2 = len * 0.21 * organic * (-root.curveSign * 0.85);
+          const breath = Math.cos(time * (root.swaySpeed * 0.75) + root.harmPhase2) * len * 0.032 * organic;
+
+          const cp1X = startX + bCos * (len * 0.34) + bPerpX * (waveAmp1 + breath);
+          const cp1Y = startY + bSin * (len * 0.34) + bPerpY * (waveAmp1 + breath);
+          const cp2X = startX + bCos * (len * 0.70) + bPerpX * (waveAmp2 - breath * 0.7);
+          const cp2Y = startY + bSin * (len * 0.70) + bPerpY * (waveAmp2 - breath * 0.7);
+
+          const p0 = { x: startX, y: startY };
+          const p1 = { x: cp1X, y: cp1Y };
+          const p2 = { x: cp2X, y: cp2Y };
+          const p3 = { x: tipX, y: tipY };
+
+          const midPt = evalCubicBezier(p0, p1, p2, p3, 0.52);
+
+          // Optional delicate secondary micro-fork sprouting mid-span
+          let fork = null;
+          if (root.hasFork && len > 28) {
+            const forkOrigin = evalCubicBezier(p0, p1, p2, p3, 0.55);
+            const forkAngle = branchAngle + root.forkSide * (0.36 + organic * 0.22);
+            const fLen = len * root.forkLengthFactor;
+            const fTipX = forkOrigin.x + Math.cos(forkAngle) * fLen;
+            const fTipY = forkOrigin.y + Math.sin(forkAngle) * fLen;
+            const fCpX = forkOrigin.x + Math.cos(forkAngle - root.forkSide * 0.18) * (fLen * 0.55);
+            const fCpY = forkOrigin.y + Math.sin(forkAngle - root.forkSide * 0.18) * (fLen * 0.55);
+            fork = {
+              originX: forkOrigin.x,
+              originY: forkOrigin.y,
+              cpX: fCpX,
+              cpY: fCpY,
+              tipX: fTipX,
+              tipY: fTipY
+            };
+          }
+
+          return {
+            root,
+            rootIndex: i,
+            p0,
+            p1,
+            p2,
+            p3,
+            midPt,
+            fork,
+            tipRadius: (root.lit ? 3.3 : 2.8) * Math.max(0.85, bScale)
+          };
+        });
+
+        const maxReach = state.geometry.rootLength * bScale * 1.12;
+        const labelDist = ringR + nodeRadius + maxReach + state.geometry.labelOffset * bScale;
+        const labelX = brain.x + cosA * labelDist;
+        const labelY = brain.y + sinA * labelDist;
+
+        return {
+          cosA,
+          sinA,
+          ringR,
+          nodeX,
+          nodeY,
+          nodeRadius,
+          rootPaths,
+          labelX,
+          labelY,
+          litCount,
+          pulsingCount
+        };
+      }
+
+      // -----------------------------------------------------------------------
+      // 4. CANVAS RENDERING ENGINE (60FPS)
+      // -----------------------------------------------------------------------
+      function resizeCanvas() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        canvas.width = Math.floor(w * dpr);
+        canvas.height = Math.floor(h * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function renderStarfield(w, h, time) {
+        // Subtle parallax shift based on camera
+        const px = -state.camera.x * 0.04;
+        const py = -state.camera.y * 0.04;
+
+        for (let i = 0; i < stars.length; i++) {
+          const s = stars[i];
+          const sx = (((s.nx * w + px) % w) + w) % w;
+          const sy = (((s.ny * h + py) % h) + h) % h;
+          const twinkle = 0.55 + 0.45 * Math.sin(time * s.speed + s.phase);
+          ctx.globalAlpha = s.alpha * twinkle;
+          ctx.fillStyle = s.tint;
+          ctx.beginPath();
+          ctx.arc(sx, sy, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 4-point diffraction stars
+        for (let i = 0; i < crossStars.length; i++) {
+          const cs = crossStars[i];
+          const sx = (((cs.nx * w + px * 1.3) % w) + w) % w;
+          const sy = (((cs.ny * h + py * 1.3) % h) + h) % h;
+          const pulse = 0.72 + 0.28 * Math.sin(time * 1.4 + cs.phase);
+          const arm = cs.size * pulse;
+
+          const grad = ctx.createRadialGradient(sx, sy, 0, sx, sy, arm * 1.6);
+          grad.addColorStop(0, 'rgba(224, 242, 254, 0.85)');
+          grad.addColorStop(0.35, 'rgba(186, 230, 253, 0.25)');
+          grad.addColorStop(1, 'rgba(186, 230, 253, 0)');
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(sx, sy, arm * 1.6, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = 'rgba(240, 249, 255, 0.85)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(sx - arm, sy);
+          ctx.lineTo(sx + arm, sy);
+          ctx.moveTo(sx, sy - arm);
+          ctx.lineTo(sx, sy + arm);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function renderBridges(time) {
+        bridges.forEach((bridge) => {
+          const bFrom = getBrainById(bridge.from);
+          const bTo = getBrainById(bridge.to);
+          if (!bFrom || !bTo) return;
+
+          const dx = bTo.x - bFrom.x;
+          const dy = bTo.y - bFrom.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 1) return;
+
+          const ux = dx / dist;
+          const uy = dy / dist;
+          const startPad = bFrom.coreRadius * bFrom.scale + 8;
+          const endPad = bTo.coreRadius * bTo.scale + 8;
+
+          const x1 = bFrom.x + ux * startPad;
+          const y1 = bFrom.y + uy * startPad;
+          const x2 = bTo.x - ux * endPad;
+          const y2 = bTo.y - uy * endPad;
+
+          // Subtle dotted energy conduit
+          ctx.save();
+          ctx.setLineDash([2.5, 6.5]);
+          ctx.lineDashOffset = -time * 18;
+          ctx.strokeStyle = 'rgba(203, 213, 225, 0.34)';
+          ctx.lineWidth = 1.15;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+          ctx.restore();
+
+          // Traveling luminous energy pulses along bridge
+          for (let i = 0; i < bridge.count; i++) {
+            const t = (time * bridge.speed + i / bridge.count) % 1;
+            const px = x1 + (x2 - x1) * t;
+            const py = y1 + (y2 - y1) * t;
+            const color = i % 2 === 0 ? bridge.pulseColor : bridge.secondaryColor;
+
+            const halo = ctx.createRadialGradient(px, py, 0, px, py, 10);
+            halo.addColorStop(0, color);
+            halo.addColorStop(1, 'rgba(56, 189, 248, 0)');
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(px, py, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Optional directional badge ("ONE WAY")
+          if (bridge.badge) {
+            const mx = (x1 + x2) * 0.5;
+            const my = (y1 + y2) * 0.5 - 16;
+
+            ctx.save();
+            ctx.font = '600 9px "JetBrains Mono", monospace';
+            const text = `${bridge.badge} →`;
+            const tw = ctx.measureText(text).width;
+            const pw = tw + 14;
+            const ph = 18;
+
+            ctx.fillStyle = 'rgba(10, 15, 32, 0.85)';
+            ctx.strokeStyle = 'rgba(56, 189, 248, 0.42)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(mx - pw * 0.5, my - ph * 0.5, pw, ph, 9);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#bae6fd';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, mx, my + 0.5);
+            ctx.restore();
+          }
+        });
+      }
+
+      function renderBrain(brain, time) {
+        const bScale = brain.scale;
+        const coreR = brain.coreRadius * bScale;
+        const isSelected = state.selectedBrainId === brain.id;
+        const isHovered = state.interaction.hoveredBrainId === brain.id;
+
+        // 1. Ambient Nebula Halo
+        const nebulaR = coreR * 2.55;
+        const nebula = ctx.createRadialGradient(brain.x, brain.y, coreR * 0.15, brain.x, brain.y, nebulaR);
+        nebula.addColorStop(0, brain.glowColor);
+        nebula.addColorStop(0.6, 'rgba(30, 27, 75, 0.12)');
+        nebula.addColorStop(1, 'rgba(6, 8, 18, 0)');
+        ctx.fillStyle = nebula;
+        ctx.beginPath();
+        ctx.arc(brain.x, brain.y, nebulaR, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. Subtle Orbital Guide Ring for Inner Nodes
+        if (brain.nodes.length > 0) {
+          const ringR = state.geometry.ringRadius * bScale;
+          ctx.save();
+          ctx.strokeStyle = isSelected || isHovered
+            ? 'rgba(56, 189, 248, 0.24)'
+            : 'rgba(148, 163, 184, 0.10)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(brain.x, brain.y, ringR, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 3. Selection / Hover Reticle around Core
+        if (isSelected || isHovered) {
+          ctx.save();
+          ctx.setLineDash([4, 4]);
+          ctx.lineDashOffset = time * 10;
+          ctx.strokeStyle = isHovered ? 'rgba(56, 189, 248, 0.65)' : 'rgba(56, 189, 248, 0.35)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(brain.x, brain.y, coreR + 7, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // 4. Swirling Micro-Particles in Brain Core
+        for (let i = 0; i < brain.particles.length; i++) {
+          const p = brain.particles[i];
+          const angle = p.theta + time * p.speed;
+          const breathe = 1 + 0.05 * Math.sin(time * 1.8 + p.twinklePhase);
+          const r = p.radial * coreR * breathe;
+          const px = brain.x + Math.cos(angle) * r;
+          const py = brain.y + Math.sin(angle) * r;
+          const alpha = 0.45 + 0.5 * Math.sin(time * 2.4 + p.twinklePhase);
+
+          ctx.globalAlpha = Math.max(0.15, Math.min(1, alpha));
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(px, py, p.size * Math.max(0.85, bScale), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+
+        // 5. Render Each Inner Ring Node + Its 7 Organic Dendritic Roots
+        brain.nodes.forEach((node, nIdx) => {
+          const geom = computeNodeGeometry(brain, node, time);
+
+          // Draw all 7 organic dendritic root tendrils
+          geom.rootPaths.forEach((rp) => {
+            const { root, rootIndex, p0, p1, p2, p3, midPt, fork, tipRadius } = rp;
+            const isTipHovered =
+              state.interaction.hoveredTip &&
+              state.interaction.hoveredTip.brainId === brain.id &&
+              state.interaction.hoveredTip.nodeIndex === nIdx &&
+              state.interaction.hoveredTip.rootIndex === rootIndex;
+
+            // Main S-curve cubic Bezier filament
+            ctx.save();
+            ctx.strokeStyle = root.lit
+              ? node.color
+              : 'rgba(203, 213, 225, 0.30)';
+            ctx.globalAlpha = root.lit ? 0.88 : 0.78;
+            ctx.lineWidth = (root.lit ? 1.35 : 0.95) * Math.max(0.85, bScale);
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+            ctx.stroke();
+
+            // Delicate secondary mid-span micro-fork
+            if (fork) {
+              ctx.globalAlpha = root.lit ? 0.65 : 0.45;
+              ctx.lineWidth = 0.72 * Math.max(0.85, bScale);
+              ctx.beginPath();
+              ctx.moveTo(fork.originX, fork.originY);
+              ctx.quadraticCurveTo(fork.cpX, fork.cpY, fork.tipX, fork.tipY);
+              ctx.stroke();
+
+              // Tiny terminal bud on micro-fork
+              ctx.fillStyle = root.lit ? node.color : 'rgba(203, 213, 225, 0.55)';
+              ctx.beginPath();
+              ctx.arc(fork.tipX, fork.tipY, 1.35 * Math.max(0.85, bScale), 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.restore();
+
+            // Mid-span synaptic bead along the spine
+            if (root.hasMidNode) {
+              ctx.fillStyle = root.lit ? node.color : 'rgba(203, 213, 225, 0.52)';
+              ctx.beginPath();
+              ctx.arc(midPt.x, midPt.y, 1.55 * Math.max(0.85, bScale), 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // Animated Light Pulse traveling along pulsing roots
+            if (root.pulsing) {
+              const tPulse = (time * 0.55 + root.pulsePhase) % 1;
+              const pulsePt = evalCubicBezier(p0, p1, p2, p3, tPulse);
+
+              const pGlow = ctx.createRadialGradient(pulsePt.x, pulsePt.y, 0, pulsePt.x, pulsePt.y, 8.5);
+              pGlow.addColorStop(0, '#ffffff');
+              pGlow.addColorStop(0.35, node.color);
+              pGlow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+              ctx.fillStyle = pGlow;
+              ctx.beginPath();
+              ctx.arc(pulsePt.x, pulsePt.y, 8.5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            // Hollow Terminal Root Tip Circle (Interactive toggle target)
+            ctx.save();
+            if (root.lit || isTipHovered) {
+              const tipGlow = ctx.createRadialGradient(p3.x, p3.y, 0, p3.x, p3.y, tipRadius * 3.2);
+              tipGlow.addColorStop(0, isTipHovered ? '#ffffff' : node.color);
+              tipGlow.addColorStop(1, 'rgba(0,0,0,0)');
+              ctx.fillStyle = tipGlow;
+              ctx.beginPath();
+              ctx.arc(p3.x, p3.y, tipRadius * 3.2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+
+            ctx.fillStyle = '#070a17';
+            ctx.strokeStyle = isTipHovered
+              ? '#ffffff'
+              : root.lit
+              ? node.color
+              : 'rgba(203, 213, 225, 0.55)';
+            ctx.lineWidth = isTipHovered ? 1.8 : 1.25;
+            ctx.beginPath();
+            ctx.arc(p3.x, p3.y, tipRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+          });
+
+          // Draw Inner Ring Node Circle
+          ctx.save();
+          if (geom.litCount > 0) {
+            const nGlow = ctx.createRadialGradient(geom.nodeX, geom.nodeY, 2, geom.nodeX, geom.nodeY, geom.nodeRadius * 1.9);
+            nGlow.addColorStop(0, node.color + '55');
+            nGlow.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = nGlow;
+            ctx.beginPath();
+            ctx.arc(geom.nodeX, geom.nodeY, geom.nodeRadius * 1.9, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          ctx.fillStyle = 'rgba(10, 14, 29, 0.90)';
+          ctx.strokeStyle = node.color;
+          ctx.lineWidth = geom.litCount > 0 ? 2.1 : 1.6;
+          ctx.beginPath();
+          ctx.arc(geom.nodeX, geom.nodeY, geom.nodeRadius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          // Node Letter / Number
+          ctx.fillStyle = '#f8fafc';
+          ctx.font = `600 ${Math.round(11 * bScale)}px "Cinzel", Georgia, serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(node.char, geom.nodeX, geom.nodeY + 0.5);
+          ctx.restore();
+
+          // Draw Outer Radial Label + Telemetry Subtitle
+          ctx.save();
+          let align = 'center';
+          if (geom.cosA > 0.28) align = 'left';
+          else if (geom.cosA < -0.28) align = 'right';
+
+          ctx.textAlign = align;
+          ctx.textBaseline = 'middle';
+
+          const titleFontSize = Math.max(9, Math.round(10 * bScale));
+          const subFontSize = Math.max(8, Math.round(8.8 * bScale));
+
+          ctx.font = `600 ${titleFontSize}px "Cinzel", Georgia, serif`;
+          ctx.fillStyle = geom.litCount > 0 ? '#f8fafc' : 'rgba(226, 232, 240, 0.86)';
+          ctx.fillText(node.title, geom.labelX, geom.labelY - subFontSize * 0.65);
+
+          // Subtitle (e.g. "/yt-seo · 1 lit" or "1 lit · 1 pulsing" or "0 lit")
+          let statusParts = [];
+          if (node.slug) statusParts.push(node.slug);
+          statusParts.push(`${geom.litCount} lit`);
+          if (geom.pulsingCount > 0) statusParts.push(`${geom.pulsingCount} pulsing`);
+          const subText = statusParts.join(' · ');
+
+          ctx.font = `400 ${subFontSize}px "JetBrains Mono", monospace`;
+          ctx.fillStyle = geom.pulsingCount > 0
+            ? node.color
+            : geom.litCount > 0
+            ? '#cbd5e1'
+            : 'rgba(148, 163, 184, 0.72)';
+          ctx.fillText(subText, geom.labelX, geom.labelY + titleFontSize * 0.72);
+          ctx.restore();
+        });
+
+        // 6. Central Brain Title ("YTAS", "JARVIS", "VIDEOS", "SHORTS")
+        ctx.save();
+        const headerSize = Math.max(11, Math.round(13.5 * bScale));
+        ctx.font = `700 ${headerSize}px "Cinzel", Georgia, serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(5, 7, 16, 0.95)';
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = '#f8fafc';
+        // Slight letter-spacing feel via spaced characters
+        const spacedTitle = brain.title.split('').join(' ');
+        ctx.fillText(spacedTitle, brain.x, brain.y);
+        ctx.restore();
+      }
+
+      function animate(nowMs) {
+        const time = nowMs * 0.001;
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+
+        // Smooth camera interpolation toward target
+        state.camera.x += (state.camera.targetX - state.camera.x) * 0.14;
+        state.camera.y += (state.camera.targetY - state.camera.y) * 0.14;
+        state.camera.zoom += (state.camera.targetZoom - state.camera.zoom) * 0.14;
+
+        // Update zoom badge
+        const fit = getViewportFitScale();
+        const displayPct = Math.round(state.camera.zoom * 100);
+        const zoomBadge = document.getElementById('zoomBadge');
+        if (zoomBadge) zoomBadge.textContent = `${displayPct}%`;
+
+        // Clear canvas
+        ctx.clearRect(0, 0, w, h);
+
+        // 1. Background Cosmic Starfield
+        renderStarfield(w, h, time);
+
+        // 2. World-Space Neural Network Transform
+        ctx.save();
+        const totalZoom = state.camera.zoom * fit;
+        ctx.translate(w * 0.5, h * 0.5);
+        ctx.scale(totalZoom, totalZoom);
+        ctx.translate(-state.camera.x, -state.camera.y);
+
+        // Bridges first so cores sit cleanly on top
+        renderBridges(time);
+
+        // Render all 4 Big Brains & their 7-root dendritic clusters
+        for (let i = 0; i < brains.length; i++) {
+          renderBrain(brains[i], time);
+        }
+
+        ctx.restore();
+        requestAnimationFrame(animate);
+      }
+
+      // -----------------------------------------------------------------------
+      // 5. POINTER, TOUCH, DRAG-AND-DROP & ROOT TIP HIT-TESTING
+      // -----------------------------------------------------------------------
+      function hitTestRootTip(worldPt) {
+        for (let bIdx = brains.length - 1; bIdx >= 0; bIdx--) {
+          const brain = brains[bIdx];
+          for (let nIdx = 0; nIdx < brain.nodes.length; nIdx++) {
+            const node = brain.nodes[nIdx];
+            const geom = computeNodeGeometry(brain, node, 0);
+            for (let rIdx = 0; rIdx < geom.rootPaths.length; rIdx++) {
+              const rp = geom.rootPaths[rIdx];
+              const d = Math.hypot(worldPt.x - rp.p3.x, worldPt.y - rp.p3.y);
+              if (d <= rp.tipRadius + 6) {
+                return {
+                  brainId: brain.id,
+                  nodeIndex: nIdx,
+                  rootIndex: rIdx,
+                  root: rp.root,
+                  node,
+                  nodeTitle: node.title
+                };
+              }
+            }
+          }
+        }
+        return null;
+      }
+
+      function hitTestNodeCircle(worldPt) {
+        for (let bIdx = brains.length - 1; bIdx >= 0; bIdx--) {
+          const brain = brains[bIdx];
+          for (const node of brain.nodes) {
+            const g = computeNodeGeometry(brain, node, 0);
+            if (Math.hypot(worldPt.x - g.nodeX, worldPt.y - g.nodeY) <= g.nodeRadius + 3) return { node, brainId: brain.id };
+          }
+        }
+        return null;
+      }
+
+      function hitTestBrainCore(worldPt) {
+        for (let bIdx = brains.length - 1; bIdx >= 0; bIdx--) {
+          const brain = brains[bIdx];
+          const hitR = brain.coreRadius * brain.scale + 16;
+          const d = Math.hypot(worldPt.x - brain.x, worldPt.y - brain.y);
+          if (d <= hitR) {
+            return brain;
+          }
+        }
+        return null;
+      }
+
+      function updateCanvasCursor() {
+        canvas.classList.remove('dragging-brain', 'hovering-brain', 'hovering-tip');
+        if (state.interaction.draggingBrain) {
+          canvas.classList.add('dragging-brain');
+        } else if (state.interaction.hoveredTip) {
+          canvas.classList.add('hovering-tip');
+        } else if (state.interaction.hoveredBrainId) {
+          canvas.classList.add('hovering-brain');
+        }
+      }
+
+      canvas.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        const worldPt = screenToWorld(e.clientX, e.clientY);
+
+        // 1. A root tip opens its finding or fix
+        const tipHit = hitTestRootTip(worldPt);
+        if (tipHit) {
+          const item = tipHit.root.item;
+          if (item) window.JarvisData.openItem(item, tipHit.node, tipHit.brainId);
+          else showToast(`${tipHit.nodeTitle} · no data on this tip yet`);
+          return;
+        }
+
+        // 2. A skill or part circle lists everything on it
+        const nodeHit = hitTestNodeCircle(worldPt);
+        if (nodeHit) { window.JarvisData.openNode(nodeHit.node, nodeHit.brainId); return; }
+
+        // 3. A brain: drag it when the layout is unlocked; a click opens its details
+        const brainHit = hitTestBrainCore(worldPt);
+        if (brainHit) {
+          state.interaction.pressBrain = { brain: brainHit, x: e.clientX, y: e.clientY };
+          if (!state.locked) {
+            state.interaction.draggingBrain = brainHit;
+            state.interaction.dragOffsetX = worldPt.x - brainHit.x;
+            state.interaction.dragOffsetY = worldPt.y - brainHit.y;
+            selectBrainTab(brainHit.id);
+          }
+          canvas.setPointerCapture(e.pointerId);
+          updateCanvasCursor();
+          return;
+        }
+
+        // 3. Otherwise start panning canvas
+        state.interaction.isPanning = true;
+        state.interaction.panStartX = e.clientX;
+        state.interaction.panStartY = e.clientY;
+        state.interaction.camStartX = state.camera.targetX;
+        state.interaction.camStartY = state.camera.targetY;
+        canvas.setPointerCapture(e.pointerId);
+      });
+
+      canvas.addEventListener('pointermove', (e) => {
+        const worldPt = screenToWorld(e.clientX, e.clientY);
+
+        if (state.interaction.pressBrain && Math.hypot(e.clientX - state.interaction.pressBrain.x, e.clientY - state.interaction.pressBrain.y) > 5) state.interaction.pressBrain.moved = true;
+        if (state.interaction.draggingBrain) {
+          const brain = state.interaction.draggingBrain;
+          const newX = worldPt.x - state.interaction.dragOffsetX;
+          const newY = worldPt.y - state.interaction.dragOffsetY;
+          brain.x = newX;
+          brain.y = newY;
+          brain.baseX = Math.round(newX / state.globalSpread);
+          brain.baseY = Math.round(newY / state.globalSpread);
+          markPresetCustom();
+          syncControlsUI();
+          saveLayout();
+          return;
+        }
+        if (state.interaction.pressBrain) return;
+
+        if (state.interaction.isPanning) {
+          const fit = getViewportFitScale();
+          const totalZoom = state.camera.zoom * fit;
+          const dx = (e.clientX - state.interaction.panStartX) / totalZoom;
+          const dy = (e.clientY - state.interaction.panStartY) / totalZoom;
+          state.camera.targetX = state.interaction.camStartX - dx;
+          state.camera.targetY = state.interaction.camStartY - dy;
+          return;
+        }
+
+        // Hover detection
+        const tipHit = hitTestRootTip(worldPt);
+        state.interaction.hoveredTip = tipHit;
+        const brainHit = tipHit ? null : hitTestBrainCore(worldPt);
+        state.interaction.hoveredBrainId = brainHit ? brainHit.id : null;
+        const nodeHover = tipHit || brainHit ? null : hitTestNodeCircle(worldPt);
+        window.JarvisData.showTip(e, tipHit, brainHit, nodeHover);
+        updateCanvasCursor();
+        if (nodeHover) canvas.classList.add('hovering-tip');
+      });
+
+      function endPointerAction(e) {
+        const press = state.interaction.pressBrain;
+        state.interaction.pressBrain = null;
+        if (press && !press.moved && e && e.type === 'pointerup') window.JarvisData.openBrain(press.brain.id);
+        if (state.interaction.draggingBrain) {
+          state.interaction.draggingBrain = null;
+        }
+        if (state.interaction.isPanning) {
+          state.interaction.isPanning = false;
+        }
+        try {
+          if (e && e.pointerId !== undefined) {
+            canvas.releasePointerCapture(e.pointerId);
+          }
+        } catch (_) {}
+        updateCanvasCursor();
+      }
+
+      canvas.addEventListener('pointerup', endPointerAction);
+      canvas.addEventListener('pointercancel', endPointerAction);
+      canvas.addEventListener('pointerleave', () => window.JarvisData.showTip(null));
+
+      // Smooth Mouse Wheel Zoom
+      canvas.addEventListener(
+        'wheel',
+        (e) => {
+          e.preventDefault();
+          const zoomFactor = e.deltaY < 0 ? 1.1 : 0.91;
+          state.camera.targetZoom = Math.max(0.35, Math.min(2.8, state.camera.targetZoom * zoomFactor));
+        },
+        { passive: false }
+      );
+
+      // -----------------------------------------------------------------------
+      // 6. LIVE SLIDING BAR CONTROLS & PRESET MANAGEMENT
+      // -----------------------------------------------------------------------
+      const sliderGlobalSpread = document.getElementById('sliderGlobalSpread');
+      const sliderBrainX = document.getElementById('sliderBrainX');
+      const sliderBrainY = document.getElementById('sliderBrainY');
+      const sliderBrainScale = document.getElementById('sliderBrainScale');
+      const sliderRootsPerNode = document.getElementById('sliderRootsPerNode');
+      const sliderRingRadius = document.getElementById('sliderRingRadius');
+      const sliderRootLength = document.getElementById('sliderRootLength');
+      const sliderFanSpread = document.getElementById('sliderFanSpread');
+      const sliderLabelOffset = document.getElementById('sliderLabelOffset');
+      const sliderOrganicCurve = document.getElementById('sliderOrganicCurve');
+
+      // ---- lock: the panel stays visible, but nothing changes until it is unlocked ----
+      const LAYOUT_KEY = 'jarvis.layout.v1';
+      state.locked = true;
+      function saveLayout() {
+        try {
+          localStorage.setItem(LAYOUT_KEY, JSON.stringify({
+            preset: state.activePreset, globalSpread: state.globalSpread, geometry: state.geometry, locked: state.locked,
+            positions: Object.fromEntries(brains.map((b) => [b.id, { x: b.baseX, y: b.baseY, scale: b.scale }]))
+          }));
+        } catch (_) {}
+      }
+      function loadLayout() {
+        try {
+          const v = JSON.parse(localStorage.getItem(LAYOUT_KEY));
+          if (!v) return false;
+          state.activePreset = v.preset || 'custom';
+          state.globalSpread = v.globalSpread || 1;
+          state.geometry = { ...state.geometry, ...v.geometry };
+          state.locked = v.locked !== false;
+          brains.forEach((b) => { const p = v.positions && v.positions[b.id]; if (p) { b.baseX = p.x; b.baseY = p.y; b.scale = p.scale; } });
+          return true;
+        } catch (_) { return false; }
+      }
+      function setLocked(on, quiet) {
+        state.locked = on;
+        const drawer = document.getElementById('controlsDrawer');
+        drawer.classList.toggle('locked', on);
+        drawer.querySelectorAll('input[type="range"]').forEach((el) => (el.disabled = on));
+        drawer.querySelectorAll('.preset-btn, #btnResetRoots').forEach((el) => (el.disabled = on));
+        document.querySelectorAll('.lock-closed').forEach((el) => el.classList.toggle('hidden', !on));
+        document.querySelectorAll('.lock-open').forEach((el) => el.classList.toggle('hidden', on));
+        const t = on ? 'Unlock layout to edit' : 'Lock layout';
+        ['btnLockTop', 'btnLockPanel'].forEach((id) => { const el = document.getElementById(id); el.title = t; el.setAttribute('aria-label', t); el.classList.toggle('lock-on', on); });
+        const panelBtn = document.getElementById('btnLockPanel');
+        panelBtn.classList.toggle('text-emerald-300', !on); panelBtn.classList.toggle('border-emerald-400/40', !on);
+        document.getElementById('lockText').textContent = on ? 'Locked' : 'Unlocked';
+        const note = document.getElementById('lockNote');
+        note.textContent = on ? 'Locked: unlock to change the layout. Your settings are saved in this browser.' : 'Unlocked: changes apply live and are saved in this browser. Lock again when done.';
+        note.className = 'px-4 pt-2 text-[10px] ' + (on ? 'text-amber-300/90' : 'text-emerald-300/90');
+        saveLayout();
+        if (!quiet) showToast(on ? 'Layout locked' : 'Layout unlocked: changes are saved');
+      }
+      document.getElementById('btnLockTop').addEventListener('click', () => setLocked(!state.locked));
+      document.getElementById('btnLockPanel').addEventListener('click', () => setLocked(!state.locked));
+
+      function markPresetCustom() {
+        state.activePreset = 'custom';
+        document.getElementById('activePresetLabel').textContent = 'Custom';
+        document.querySelectorAll('.preset-btn').forEach((btn) => {
+          btn.classList.remove('bg-sky-500/20', 'text-sky-300', 'border-sky-400/40');
+          btn.classList.add('text-slate-400', 'border-transparent');
+        });
+      }
+
+      function applyPreset(presetKey) {
+        const preset = PRESETS[presetKey];
+        if (!preset) return;
+        state.activePreset = presetKey;
+        state.globalSpread = preset.globalSpread;
+        state.geometry = { ...preset.geometry };
+
+        updateRootsCount(preset.geometry.rootsPerNode);
+
+        brains.forEach((b) => {
+          const p = preset.positions[b.id];
+          if (p) {
+            b.baseX = p.x;
+            b.baseY = p.y;
+            b.scale = p.scale;
+          }
+        });
+
+        document.getElementById('activePresetLabel').textContent = preset.label;
+        document.querySelectorAll('.preset-btn').forEach((btn) => {
+          const active = btn.dataset.preset === presetKey;
+          btn.classList.toggle('bg-sky-500/20', active);
+          btn.classList.toggle('text-sky-300', active);
+          btn.classList.toggle('border-sky-400/40', active);
+          btn.classList.toggle('text-slate-400', !active);
+          btn.classList.toggle('border-transparent', !active);
+        });
+
+        recomputeBrainPositions();
+      }
+
+      function selectBrainTab(brainId) {
+        state.selectedBrainId = brainId;
+        document.querySelectorAll('.brain-tab-btn').forEach((btn) => {
+          const active = btn.dataset.brainTab === brainId;
+          btn.classList.toggle('bg-sky-500/25', active);
+          btn.classList.toggle('text-sky-300', active);
+          btn.classList.toggle('border-sky-400/40', active);
+          btn.classList.toggle('text-slate-400', !active);
+          btn.classList.toggle('border-transparent', !active);
+        });
+        syncControlsUI();
+      }
+
+      function syncControlsUI() {
+        if (typeof saveLayout === 'function' && !syncControlsUI.booting) saveLayout();
+        const activeBrain = getBrainById(state.selectedBrainId) || brains[0];
+        const ytas = getBrainById('YTAS');
+        const jarvis = getBrainById('JARVIS');
+        const bridgeDist = Math.round(Math.hypot(jarvis.x - ytas.x, jarvis.y - ytas.y));
+
+        document.getElementById('liveBridgeDistBadge').textContent = `${bridgeDist}px`;
+
+        sliderGlobalSpread.value = state.globalSpread.toFixed(2);
+        document.getElementById('valGlobalSpread').textContent = `${state.globalSpread.toFixed(2)}x`;
+
+        document.getElementById('lblBrainNameX').textContent = activeBrain.id;
+        document.getElementById('lblBrainNameY').textContent = activeBrain.id;
+        document.getElementById('lblBrainNameScale').textContent = activeBrain.id;
+
+        sliderBrainX.value = Math.round(activeBrain.baseX);
+        document.getElementById('valBrainX').textContent = `${Math.round(activeBrain.x)} px`;
+
+        sliderBrainY.value = Math.round(activeBrain.baseY);
+        document.getElementById('valBrainY').textContent = `${Math.round(activeBrain.y)} px`;
+
+        sliderBrainScale.value = activeBrain.scale.toFixed(2);
+        document.getElementById('valBrainScale').textContent = `${activeBrain.scale.toFixed(2)}x`;
+
+        sliderRootsPerNode.value = state.geometry.rootsPerNode;
+        document.getElementById('valRootsPerNode').textContent = `${state.geometry.rootsPerNode} roots`;
+
+        sliderRingRadius.value = state.geometry.ringRadius;
+        document.getElementById('valRingRadius').textContent = `${state.geometry.ringRadius} px`;
+
+        sliderRootLength.value = state.geometry.rootLength;
+        document.getElementById('valRootLength').textContent = `${state.geometry.rootLength} px`;
+
+        sliderFanSpread.value = state.geometry.fanSpreadDeg;
+        document.getElementById('valFanSpread').innerHTML = `${state.geometry.fanSpreadDeg}&deg;`;
+
+        sliderLabelOffset.value = state.geometry.labelOffset;
+        document.getElementById('valLabelOffset').textContent = `${state.geometry.labelOffset} px`;
+
+        sliderOrganicCurve.value = state.geometry.organicCurve;
+        document.getElementById('valOrganicCurve').textContent = `${state.geometry.organicCurve}%`;
+      }
+
+      // Bind Slider Live Input Events
+      sliderGlobalSpread.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.globalSpread = parseFloat(e.target.value);
+        markPresetCustom();
+        recomputeBrainPositions();
+      });
+
+      sliderBrainX.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        const b = getBrainById(state.selectedBrainId);
+        if (!b) return;
+        b.baseX = parseFloat(e.target.value);
+        markPresetCustom();
+        recomputeBrainPositions();
+      });
+
+      sliderBrainY.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        const b = getBrainById(state.selectedBrainId);
+        if (!b) return;
+        b.baseY = parseFloat(e.target.value);
+        markPresetCustom();
+        recomputeBrainPositions();
+      });
+
+      sliderBrainScale.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        const b = getBrainById(state.selectedBrainId);
+        if (!b) return;
+        b.scale = parseFloat(e.target.value);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      sliderRootsPerNode.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        const count = parseInt(e.target.value, 10);
+        updateRootsCount(count);
+        markPresetCustom();
+        syncControlsUI();
+        window.JarvisData.applyData();
+      });
+
+      sliderRingRadius.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.geometry.ringRadius = parseInt(e.target.value, 10);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      sliderRootLength.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.geometry.rootLength = parseInt(e.target.value, 10);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      sliderFanSpread.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.geometry.fanSpreadDeg = parseInt(e.target.value, 10);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      sliderLabelOffset.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.geometry.labelOffset = parseInt(e.target.value, 10);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      sliderOrganicCurve.addEventListener('input', (e) => {
+        if (state.locked) { syncControlsUI(); return; }
+        state.geometry.organicCurve = parseInt(e.target.value, 10);
+        markPresetCustom();
+        syncControlsUI();
+      });
+
+      // Preset Buttons & Brain Tabs
+      document.querySelectorAll('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (state.locked) return;
+          applyPreset(btn.dataset.preset);
+          window.JarvisData.applyData();
+          showToast(`Applied ${PRESETS[btn.dataset.preset].label} preset`);
+        });
+      });
+
+      document.querySelectorAll('.brain-tab-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          selectBrainTab(btn.dataset.brainTab);
+        });
+      });
+
+      document.getElementById('btnResetRoots').addEventListener('click', () => {
+        if (state.locked) return;
+        const refPreset = PRESETS[state.activePreset] || PRESETS.compact;
+        state.geometry = { ...refPreset.geometry };
+        updateRootsCount(refPreset.geometry.rootsPerNode);
+        syncControlsUI();
+        window.JarvisData.applyData();
+        showToast('Dendritic root geometry reset');
+      });
+
+      // -----------------------------------------------------------------------
+      // 7. HUD BUTTONS, FOCUS SWITCHER, INSPECTOR MODAL & EXPORT
+      // -----------------------------------------------------------------------
+      let toastTimer = null;
+      function showToast(msg) {
+        const banner = document.getElementById('toastBanner');
+        const text = document.getElementById('toastText');
+        text.textContent = msg;
+        banner.classList.remove('opacity-0');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          banner.classList.add('opacity-0');
+        }, 2100);
+      }
+
+      // Toggle Drawer
+      const controlsDrawer = document.getElementById('controlsDrawer');
+      const btnToggleControls = document.getElementById('btnToggleControls');
+      function toggleControlsDrawer(forceState) {
+        const shouldCollapse =
+          typeof forceState === 'boolean'
+            ? !forceState
+            : !controlsDrawer.classList.contains('collapsed');
+        controlsDrawer.classList.toggle('collapsed', shouldCollapse);
+        btnToggleControls.classList.toggle('active', !shouldCollapse);
+      }
+
+      btnToggleControls.addEventListener('click', () => toggleControlsDrawer());
+      document.getElementById('btnCloseDrawer').addEventListener('click', () => toggleControlsDrawer(false));
+
+      // Focus Switcher (< ALL BRAINS >)
+      function applyFocusMode(index) {
+        state.focusIndex = (index + state.focusModes.length) % state.focusModes.length;
+        const mode = state.focusModes[state.focusIndex];
+        document.getElementById('btnFocusCycle').textContent = mode;
+
+        if (mode === 'ALL BRAINS') {
+          state.camera.targetX = 0;
+          state.camera.targetY = 0;
+          state.camera.targetZoom = 1.0;
+        } else {
+          const b = getBrainById(mode);
+          if (b) {
+            state.camera.targetX = b.x;
+            state.camera.targetY = b.y;
+            state.camera.targetZoom = 1.38;
+            selectBrainTab(b.id);
+          }
+        }
+      }
+
+      document.getElementById('btnPrevBrain').addEventListener('click', () => applyFocusMode(state.focusIndex - 1));
+      document.getElementById('btnNextBrain').addEventListener('click', () => applyFocusMode(state.focusIndex + 1));
+      document.getElementById('btnFocusCycle').addEventListener('click', () => applyFocusMode(state.focusIndex + 1));
+
+      // Reset Camera
+
+
+      // Fullscreen
+      document.getElementById('btnFullscreen').addEventListener('click', () => {
+        try {
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+          } else {
+            document.exitFullscreen();
+          }
+        } catch (_) {
+          showToast('Fullscreen unavailable in embedded preview');
+        }
+      });
+
+      // Build Telemetry Payload
+      function buildTelemetryJSON() {
+        let totalRoots = 0;
+        let litRoots = 0;
+        let pulsingRoots = 0;
+        brains.forEach((b) => {
+          b.nodes.forEach((n) => {
+            n.roots.forEach((r) => {
+              if (!r) return;
+              totalRoots++;
+              if (r.lit) litRoots++;
+              if (r.pulsing) pulsingRoots++;
+            });
+          });
+        });
+
+        const ytas = getBrainById('YTAS');
+        const jarvis = getBrainById('JARVIS');
+        const videos = getBrainById('VIDEOS');
+        const shorts = getBrainById('SHORTS');
+
+        return {
+          timestamp: window.JarvisData.dateText(),
+          globalSpread: state.globalSpread,
+          geometry: { ...state.geometry },
+          tendrilStats: { totalRoots, litRoots, pulsingRoots },
+          brains: brains.map((b) => ({
+            id: b.id,
+            x: Math.round(b.x),
+            y: Math.round(b.y),
+            scale: Number(b.scale.toFixed(2))
+          })),
+          distancesPx: {
+            YTAS_to_JARVIS: Math.round(Math.hypot(jarvis.x - ytas.x, jarvis.y - ytas.y)),
+            JARVIS_to_VIDEOS: Math.round(Math.hypot(videos.x - jarvis.x, videos.y - jarvis.y)),
+            JARVIS_to_SHORTS: Math.round(Math.hypot(shorts.x - jarvis.x, shorts.y - jarvis.y)),
+            VIDEOS_to_SHORTS: Math.round(Math.hypot(shorts.x - videos.x, shorts.y - videos.y))
+          }
+        };
+      }
+
+      function copyTextSafe(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand('copy');
+        } catch (_) {}
+        document.body.removeChild(ta);
+      }
+
+      // Copy layout JSON (from the panel)
+      document.getElementById('btnCopyLayout').addEventListener('click', () => {
+        const json = JSON.stringify(buildTelemetryJSON(), null, 2);
+        copyTextSafe(json);
+        showToast('Layout & Distance JSON copied to clipboard');
+      });
+
+      // Inspector Modal
+      const modalInspector = document.getElementById('modalInspector');
+      document.getElementById('btnInspector').addEventListener('click', () => {
+        const data = buildTelemetryJSON();
+        document.getElementById('inspectorContent').innerHTML = window.JarvisData.summaryHTML() + `
+          <div class="space-y-1.5 font-mono-tech">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400">Brain distances (layout)</div>
+            <div class="grid grid-cols-2 gap-2">
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>YTAS ↔ JARVIS</span><span class="text-emerald-300">${data.distancesPx.YTAS_to_JARVIS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ VIDEOS</span><span class="text-purple-300">${data.distancesPx.JARVIS_to_VIDEOS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>JARVIS ↔ SHORTS</span><span class="text-sky-300">${data.distancesPx.JARVIS_to_SHORTS} px</span></div>
+              <div class="p-2 rounded-lg bg-slate-900/70 border border-slate-800 flex justify-between"><span>VIDEOS ↔ SHORTS</span><span class="text-amber-300">${data.distancesPx.VIDEOS_to_SHORTS} px</span></div>
+            </div>
+          </div>`;
+        window.JarvisData.bindRows(document.getElementById('inspectorContent'));
+        modalInspector.classList.remove('hidden');
+      });
+
+      document.getElementById('btnCloseInspector').addEventListener('click', () => modalInspector.classList.add('hidden'));
+      document.getElementById('btnCloseInspector2').addEventListener('click', () => modalInspector.classList.add('hidden'));
+      document.getElementById('btnCopyTelemetry').addEventListener('click', () => {
+        copyTextSafe(JSON.stringify(buildTelemetryJSON(), null, 2));
+        showToast('Telemetry JSON copied to clipboard');
+      });
+
+      // Info Modal
+      const modalInfo = document.getElementById('modalInfo');
+      document.getElementById('btnInfo').addEventListener('click', () => modalInfo.classList.remove('hidden'));
+      document.getElementById('btnCloseInfo').addEventListener('click', () => modalInfo.classList.add('hidden'));
+      document.getElementById('btnCloseInfo2').addEventListener('click', () => modalInfo.classList.add('hidden'));
+
+      // Close modals on backdrop click
+      [modalInspector, modalInfo].forEach((modal) => {
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) modal.classList.add('hidden');
+        });
+      });
+
+      // -----------------------------------------------------------------------
+      // 8. INITIALIZATION
+      // -----------------------------------------------------------------------
+      window.addEventListener('resize', resizeCanvas);
+      window.JarvisMap = { brains, state, updateRootsCount, computeNodeGeometry, setLocked, showToast, getBrainById, applyFocusMode };
+      function start() {
+        initStarfield();
+        resizeCanvas();
+        if (loadLayout()) {
+          updateRootsCount(state.geometry.rootsPerNode);
+          document.getElementById('activePresetLabel').textContent = (PRESETS[state.activePreset] || { label: 'Custom' }).label;
+        }
+        syncControlsUI.booting = true;
+        recomputeBrainPositions();
+        syncControlsUI.booting = false;
+        setLocked(state.locked, true);
+        window.JarvisData.init();
+        requestAnimationFrame(animate);
+      }
+      if (document.readyState === 'complete') start(); else window.addEventListener('load', start);
+    })();
+  </script>
 </body>
 </html>
