@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YTAS Reports</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<style>
+:root { --bg: #f7f7f5; --card: #fff; --ink: #1c1c1e; --muted: #6b6b70; --line: #e3e3e0; --accent: #2a5bd7; --ok: #1f8a4c; --warn: #b26a00; --bad: #c0392b; }
+@media (prefers-color-scheme: dark) { :root { --bg: #141416; --card: #1e1e21; --ink: #ececee; --muted: #9a9aa2; --line: #2e2e33; --accent: #7aa2ff; --ok: #5fd08f; --warn: #f0b04a; --bad: #ff7b6e; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 22px; margin: 0; } h2 { font-size: 17px; margin: 28px 0 10px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); font-size: 13px; }
+button { font: inherit; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.stat, .card, details { background: var(--card); border: 1px solid var(--line); border-radius: 10px; }
+.stat { padding: 12px 14px; } .stat b { display: block; font-size: 22px; }
+.card { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+tr:last-child td { border-bottom: 0; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; border: 1px solid currentColor; white-space: nowrap; }
+.open { color: var(--warn); } .done { color: var(--ok); } .high { color: var(--bad); }
+details { margin-bottom: 8px; } summary { cursor: pointer; padding: 12px 14px; font-weight: 600; }
+.md { padding: 0 16px 14px; overflow-x: auto; } .md table { margin: 8px 0; } .md pre { white-space: pre-wrap; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.filters button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+#empty { text-align: center; padding: 48px 16px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1 id="chan">YTAS Reports</h1>
+      <div class="muted" id="meta">Analysis, reports and fixes from the daily YTAS run.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="primary" id="folderBtn" hidden>Connect folder</button>
+      <button id="loadBtn">Load report.json</button>
+    </div>
+  </header>
+  <input type="file" id="file" accept=".json,application/json" hidden>
+
+  <section id="empty" class="card">
+    <p>The 6:00 AM YTAS run writes <b>my-video\web\data\report.json</b> on your laptop.<br>Connect that folder or load the file. It stays in your browser; nothing is uploaded.</p>
+  </section>
+
+  <div id="view" hidden>
+    <div class="stats" id="stats"></div>
+    <h2>Fixes</h2>
+    <div class="filters" id="filters"></div>
+    <div class="card"><table><thead><tr><th>Status</th><th>Fix</th><th>Skill</th><th>Video</th><th>Date</th></tr></thead><tbody id="fixes"></tbody></table></div>
+    <h2>Applied rules</h2>
+    <div class="card"><table><thead><tr><th>Status</th><th>Rule</th><th>Area</th><th>Fix ID</th><th>Date</th></tr></thead><tbody id="rules"></tbody></table></div>
+    <h2>Reports</h2>
+    <div id="reports"></div>
+    <h2>Learnings log</h2>
+    <div class="card"><table><thead><tr><th>Date</th><th>Priority fix</th><th>Evidence</th><th>Status</th></tr></thead><tbody id="learn"></tbody></table></div>
+    <h2>Edits</h2>
+    <div class="card"><table><thead><tr><th>Video</th><th>Edit</th><th>Status</th><th>Note</th></tr></thead><tbody id="edits"></tbody></table></div>
+  </div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch {} } };
+let R = null, filter = "open";
+
+function render() {
+  const c = R.channel || {};
+  $("chan").innerHTML = `<a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.name || "Channel")}</a> · YTAS Reports`;
+  $("meta").textContent = "Data from " + new Date(R.generated_at).toLocaleString();
+  $("empty").hidden = true; $("view").hidden = false;
+  const fx = R.fixes.filter((f) => f.kind === "fix");
+  const open = fx.filter((f) => !f.applied);
+  $("stats").innerHTML = [["Reports", R.reports.length], ["Open fixes", open.length], ["Applied fixes", fx.length - open.length], ["Findings", R.fixes.length - fx.length]]
+    .map(([k, v]) => `<div class="stat"><b>${v}</b><span class="muted">${k}</span></div>`).join("");
+  const sets = { open: open, all: fx, findings: R.fixes.filter((f) => f.kind !== "fix") };
+  $("filters").innerHTML = [["open", "Open fixes"], ["all", "All fixes"], ["findings", "Findings"]]
+    .map(([k, l]) => `<button data-f="${k}" aria-pressed="${k === filter}">${l}</button>`).join("");
+  $("filters").querySelectorAll("button").forEach((b) => (b.onclick = () => { filter = b.dataset.f; render(); }));
+  const rows = sets[filter];
+  $("fixes").innerHTML = rows.length ? rows.map((f) => {
+    const st = f.kind !== "fix" ? '<span class="tag">finding</span>' : f.applied ? '<span class="tag done">applied</span>' : `<span class="tag open${f.priority === "high" ? " high" : ""}">${esc(f.priority || "open")}</span>`;
+    return `<tr><td>${st}</td><td>${esc(f.text)}${f.id ? `<div class="muted">${esc(f.id)}</div>` : ""}</td><td>${esc(f.skill)}</td><td>${esc(f.video_title || f.video_id)}</td><td>${esc(f.date)}</td></tr>`;
+  }).join("") : '<tr><td colspan="5" class="muted">Nothing here.</td></tr>';
+  // Escape "<" so report text (which quotes viewer comments) can never inject HTML.
+  const md = (s) => (window.marked ? marked.parse(String(s).replace(/</g, "&lt;")) : `<pre>${esc(s)}</pre>`);
+  $("reports").innerHTML = R.reports.map((r) => `<details><summary>${esc(r.title || r.video_id)} <span class="muted">· ${esc(r.format || "")} · ${esc(r.published)}${r.early ? " · early data" : ""}</span></summary><div class="md">${md(r.markdown)}</div></details>`).join("") || '<p class="muted">No reports yet.</p>';
+  $("rules").innerHTML = (R.rules || []).slice().reverse().map((r) => `<tr><td><span class="tag ${r.status === "active" ? "done" : ""}">${esc(r.status)}</span></td><td>${esc(r.rule)}</td><td>${esc(r.area)}</td><td>${esc(r.id)}</td><td>${esc(r.date)}</td></tr>`).join("") || '<tr><td colspan="5" class="muted">No rules applied yet.</td></tr>';
+  $("learn").innerHTML = R.learnings.slice().reverse().map((l) => `<tr><td>${esc(l.date)}</td><td>${esc(l.fix)}</td><td>${esc(l.evidence)}</td><td>${esc(l.status)}</td></tr>`).join("") || '<tr><td colspan="4" class="muted">Empty.</td></tr>';
+  $("edits").innerHTML = R.edits.flatMap((v) => v.components.map((e) => `<tr><td>${esc(v.video_title || v.video_id)}</td><td>${esc(e.type)}</td><td><span class="tag ${e.status === "recommended" ? "open" : "done"}">${esc(e.status)}</span></td><td>${esc(e.note)}</td></tr>`)).join("") || '<tr><td colspan="4" class="muted">Empty.</td></tr>';
+}
+function use(r, remember) {
+  if (!r || r.schema !== "ytas-report/1") { alertBox("That file is not report.json."); return false; }
+  R = r; if (remember) store.set("ytas.report", JSON.stringify(r)); render(); return true;
+}
+function alertBox(msg) { $("meta").textContent = msg; }
+
+// Local folder access (Chrome/Edge). Accepts my-video, my-video\web or my-video\web\data.
+const canFolder = "showDirectoryPicker" in window;
+let DIR = null;
+function idb() { return new Promise((res, rej) => { const q = indexedDB.open("ytas-report", 1); q.onupgradeneeded = () => q.result.createObjectStore("kv"); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbGet(k) { try { const db = await idb(); return await new Promise((r) => { const q = db.transaction("kv").objectStore("kv").get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); }); } catch { return null; } }
+async function idbSet(k, v) { try { const db = await idb(); db.transaction("kv", "readwrite").objectStore("kv").put(v, k); } catch {} }
+async function loadFolder(dir) {
+  for (const path of [[], ["data"], ["web", "data"]]) {
+    try {
+      let d = dir; for (const p of path) d = await d.getDirectoryHandle(p);
+      const f = await (await d.getFileHandle("report.json")).getFile();
+      if (use(JSON.parse(await f.text()), true)) { DIR = dir; $("folderBtn").textContent = "Refresh"; return true; }
+    } catch {}
+  }
+  alertBox("No report.json there. Choose my-video\\web\\data."); return false;
+}
+$("folderBtn").hidden = !canFolder;
+$("folderBtn").onclick = async () => {
+  try {
+    if (DIR) return void loadFolder(DIR);
+    const saved = await idbGet("dir");
+    if (saved && (await saved.requestPermission({ mode: "read" })) === "granted" && (await loadFolder(saved))) return;
+    const dir = await window.showDirectoryPicker({ id: "ytas-report", mode: "read" });
+    if (await loadFolder(dir)) await idbSet("dir", dir);
+  } catch (e) { if (e && e.name !== "AbortError") alertBox("Could not open that folder."); }
+};
+$("loadBtn").onclick = () => $("file").click();
+$("file").onchange = (e) => { const f = e.target.files[0]; if (!f) return; f.text().then((t) => { try { use(JSON.parse(t), true); } catch { alertBox("That file is not valid JSON."); } }); e.target.value = ""; };
+try { const s = store.get("ytas.report"); if (s) use(JSON.parse(s), false); } catch {}
+</script>
+</body>
+</html>
